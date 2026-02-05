@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "README.md", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/README.md" }
+  ]
+}
