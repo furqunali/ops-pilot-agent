@@ -1,0 +1,9 @@
+{
+  "name": "ops-pilot-agent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Spec-driven operations copilot runtime",
+  "scripts": {
+    "test": "node --test"
+  }
+}
