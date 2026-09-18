@@ -1,17 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { normalizeExecutionError } = require("../src/runtime-errors");
+const { normalizeExecutionError, withErrorContext } = require("../src/runtime-errors");
 
-test("normalizes Error instances", () => {
-  assert.deepEqual(normalizeExecutionError(new Error("tool failed")), {
-    name: "Error",
-    message: "tool failed",
-  });
+test("normalizes empty Error messages safely", () => {
+  assert.deepEqual(normalizeExecutionError(new Error()), { name: "Error", message: "Unknown error" });
 });
 
-test("normalizes non-Error failures", () => {
-  assert.deepEqual(normalizeExecutionError("tool failed"), {
-    name: "UnknownError",
-    message: "tool failed",
+test("adds structured execution context", () => {
+  assert.deepEqual(withErrorContext(new Error("timeout"), { stage: "execute", taskId: "t-1" }), {
+    name: "Error", message: "timeout", context: { stage: "execute", taskId: "t-1" }
   });
 });
