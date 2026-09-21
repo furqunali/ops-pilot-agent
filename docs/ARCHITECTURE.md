@@ -107,6 +107,7 @@ they return and whether they take a **function** tool or a **tool object**.
 | [`task-state-machine.js`](../src/task-state-machine.js) | `STATES`, `TRANSITIONS`, `TaskStateMachine`, `validateTransitionPath` | Explicit lifecycle FSM (`created → queued → running → succeeded/failed/…`) with guarded transitions, history, terminal detection, retry `reset()`, and path validation. |
 | [`task-dependencies.js`](../src/task-dependencies.js) | `normalizeDependencyMap`, `detectCycles`, `topologicalOrder`, `dependencyStatus` | DAG utilities over a task dependency map: cycle detection, deterministic topological sort, and readiness/missing-parent status. |
 | [`runtime-scheduler.js`](../src/runtime-scheduler.js) | `RuntimeScheduler` | Time-based job scheduler with an injectable clock: `schedule`/`cancel`/`due`/`markRunning`/`markComplete`/`removeFinished`/`snapshot`. |
+| [`queue-worker.js`](../src/queue-worker.js) | `QueueWorker` | Retry/backoff-aware worker that drains a `TaskQueue`, drives each entry through a `TaskStateMachine` (`created → queued → running → succeeded/failed/cancelled`), runs the resolved tool via `executeWithRetry`, records start/completion to an `ExecutionLedger`, and can bounded-`requeueOnFailure`. Pure composition — it reuses the queue, retry policy, state machine, tool contract, and ledger rather than reimplementing them. |
 
 ### 8. Configuration, governance & eventing
 
