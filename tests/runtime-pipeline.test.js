@@ -9,6 +9,7 @@ test("runs the complete auditable pipeline with a tool", () => {
   assert.equal(run.report.verified, true);
   assert.deepEqual(run.report.output, { synced: "sync invoices" });
   assert.deepEqual(run.audit.map(event => event.stage), ["parse", "plan", "execute", "verify", "report"]);
+  assert.deepEqual(run.report.audit.map(event => event.stage), run.audit.map(event => event.stage));
 });
 
 test("reports skipped execution without a tool", () => {

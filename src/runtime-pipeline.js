@@ -11,10 +11,11 @@ function runTaskPipeline(input, tool = null) {
   const result = executeTask(task.input, tool);
   const verification = verifyResult(result);
   const run = { task, plan, result, verification };
+  const audit = buildPipelineAudit(task, result, verification);
   return {
     ...run,
-    report: buildRuntimeReport(run),
-    audit: buildPipelineAudit(task, result, verification),
+    report: buildRuntimeReport({ ...run, audit }),
+    audit,
   };
 }
 
