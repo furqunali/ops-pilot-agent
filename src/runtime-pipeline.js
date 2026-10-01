@@ -6,9 +6,12 @@ const { buildRuntimeReport } = require("./runtime-report");
 const { buildPipelineAudit } = require("./runtime-pipeline-audit");
 const { recordStage, summarizeStages } = require("./runtime-observability");
 const { authorizeExecution } = require("./execution-policy");
+const { randomUUID } = require("node:crypto");
 
 function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const task = new Task(input);
+  const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
+  const executionOptions = { ...retryOptions, runId };
   const ledger = retryOptions?.ledger || null;
   if (ledger !== null && (!ledger || typeof ledger.recordStart !== "function" || typeof ledger.recordCompletion !== "function")) {
     throw new TypeError("ledger must expose recordStart() and recordCompletion() methods");
@@ -28,7 +31,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   if (ledgerStart) ledgerStart.metadata.authorization = authorization;
   const executeStartedAt = new Date();
   const result = authorization.allowed
-    ? executeTask(task.input, tool, retryOptions)
+    ? executeTask(task.input, tool, executionOptions)
     : { status: "skipped", task: task.input, output: null, reason: authorization.reason };
   const executeFinishedAt = new Date();
   stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization });
@@ -38,13 +41,13 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const verifyFinishedAt = new Date();
   stages = recordStage(stages, "verify", verification.valid ? "success" : "failed", verifyStartedAt, verifyFinishedAt);
 
-  const run = { task, plan, result, verification };
+  const run = { task, plan, result, verification, runId };
   const audit = buildPipelineAudit(task, result, verification);
   const observability = { stages, summary: summarizeStages(stages) };
   const report = buildRuntimeReport({ ...run, audit, observability });
-  if (ledger) ledger.recordCompletion(task.input, result, { authorization, attempts: result.attempts?.length || 0, verified: verification.valid });
+  if (ledger) ledger.recordCompletion(task.input, result, { runId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid });
 
-  return { ...run, report, audit, observability };
+  return { ...run, report: { ...report, runId }, audit, observability };
 }
 
 module.exports = { runTaskPipeline };
