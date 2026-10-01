@@ -1,14 +1,7 @@
-const { Task } = require("./task-model");
-const { planTask } = require("./task-planner");
-const { executeTask } = require("./task-executor");
-const { verifyResult } = require("./task-verifier");
+const { runTaskPipeline } = require("./runtime-pipeline");
 
 function runTask(input, tool = null) {
-  const task = new Task(input);
-  const plan = planTask(task);
-  const result = executeTask(task.input, tool);
-  const verification = verifyResult(result);
-  return { task, plan, result, verification };
+  return runTaskPipeline(input, tool);
 }
 
 module.exports = { runTask };
