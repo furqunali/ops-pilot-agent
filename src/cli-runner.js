@@ -85,7 +85,7 @@ function parseArgs(argv) {
     json: false,
     dryRun: false,
     listTools: false,
-    help: false,
+    help: false,\n    ledgerFile: null,\n    inspect: false,\n    inspectRunId: null,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -104,6 +104,22 @@ function parseArgs(argv) {
       case "--list-tools":
         parsed.listTools = true;
         break;
+      case "--ledger-file": {
+        const value = argv[i + 1];
+        if (typeof value !== "string" || value.startsWith("-")) throw new Error("--ledger-file requires a path");
+        parsed.ledgerFile = value;
+        i += 1;
+        break;
+      }
+      case "--inspect": {
+        parsed.inspect = true;
+        const value = argv[i + 1];
+        if (typeof value === "string" && !value.startsWith("-")) {
+          parsed.inspectRunId = value;
+          i += 1;
+        }
+        break;
+      }
       case "--tool": {
         const value = argv[i + 1];
         if (typeof value !== "string" || value.startsWith("-")) {
@@ -161,7 +177,30 @@ function runCli(argv, options = {}) {
     return { code: 0, report: null };
   }
 
-  if (args.inspect) {\n    if (!args.ledgerFile) { out("error: --inspect requires --ledger-file"); return { code: 2, report: null }; }\n    try {\n      const ledger = new ExecutionLedger();\n      ledger.import(JSON.parse(fs.readFileSync(args.ledgerFile, "utf8")));\n      const inspected = inspectLedgerRuns(ledger, args.inspectRunId);\n      if (inspected === null) { out(`error: run not found: ${args.inspectRunId}`); return { code: 1, report: null }; }\n      out(args.json ? JSON.stringify(inspected, null, 2) : inspected.map((entry) => `${entry.runId} ${entry.type} ${entry.status} attempts=${entry.attempts} durationMs=${entry.durationMs} authorization=${entry.authorization ?? "-"}`).join("\\n"));\n      return { code: 0, report: inspected };\n    } catch (error) { out(`error: ${error.message}`); return { code: 2, report: null }; }\n  }\n\n  if (args.listTools) {
+  if (args.inspect !== false) {
+    if (!args.ledgerFile) {
+      out("error: --inspect requires --ledger-file");
+      return { code: 2, report: null };
+    }
+    try {
+      const ledger = new ExecutionLedger();
+      ledger.import(JSON.parse(fs.readFileSync(args.ledgerFile, "utf8")));
+      const inspected = inspectLedgerRuns(ledger, args.inspectRunId);
+      if (inspected === null) {
+        out(`error: run not found: ${args.inspectRunId}`);
+        return { code: 1, report: null };
+      }
+      out(args.json
+        ? JSON.stringify(inspected, null, 2)
+        : inspected.map((entry) => `${entry.runId} ${entry.type} ${entry.status} attempts=${entry.attempts} durationMs=${entry.durationMs} authorization=${entry.authorization ?? "-"}`).join("\n"));
+      return { code: 0, report: inspected };
+    } catch (error) {
+      out(`error: ${error.message}`);
+      return { code: 2, report: null };
+    }
+  }
+
+  if (args.listTools) {
     for (const tool of registry.list()) {
       out(`${tool.name} [${tool.capabilities.join(", ")}]`);
     }
@@ -193,7 +232,7 @@ function runCli(argv, options = {}) {
   }
 
   const runner = tool ? (input) => tool.execute(input) : null;
-  const run = runTask(args.task, runner);
+  const ledger = args.ledgerFile ? new ExecutionLedger() : null;\n  const run = runTask(args.task, runner, ledger ? { ledger } : {});\n  if (ledger) fs.writeFileSync(args.ledgerFile, JSON.stringify(ledger.export(), null, 2));
   const report = buildRuntimeReport({ ...run, plan });
 
   out(args.json ? JSON.stringify(report, null, 2) : formatReport(report));
