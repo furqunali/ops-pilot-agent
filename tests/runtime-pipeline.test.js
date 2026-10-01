@@ -9,6 +9,10 @@ test("runs the complete auditable pipeline with a tool", () => {
   assert.equal(run.report.verified, true);
   assert.deepEqual(run.report.output, { synced: "sync invoices" });
   assert.deepEqual(run.audit.map(event => event.stage), ["parse", "plan", "execute", "verify", "report"]);
+  assert.deepEqual(run.observability.stages.map(stage => stage.stage), ["parse", "plan", "execute", "verify"]);
+  assert.equal(run.observability.summary.total, 4);
+  assert.equal(run.observability.summary.failed, 0);
+  assert.deepEqual(run.report.observability.stages.map(stage => stage.stage), run.observability.stages.map(stage => stage.stage));
   assert.deepEqual(run.report.audit.map(event => event.stage), run.audit.map(event => event.stage));
 });
 
