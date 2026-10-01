@@ -79,3 +79,25 @@ test("interrupted runs require authorization before resume", () => {
   assert.equal(resumed, false);
   assert.equal(ledger.findByType("completion").length, 0);
 });
+
+
+test("recovery rejects invalid resume results without writing a completion", () => {
+  const ledger = new ExecutionLedger();
+  ledger.recordStart("resume job", { runId: "run-invalid" });
+  assert.throws(() => recoverRun(ledger, "run-invalid", {
+    authorize: () => ({ allowed: true }),
+    resume: () => null,
+  }), /resume must return a runtime result/);
+  assert.equal(ledger.findByType("completion").length, 0);
+});
+
+test("recovery completion records the recovery correlation id", () => {
+  const ledger = new ExecutionLedger();
+  ledger.recordStart("resume job", { runId: "run-recover" });
+  const result = recoverRun(ledger, "run-recover", {
+    authorize: () => ({ allowed: true }),
+    resume: task => ({ status: "success", task }),
+  });
+  assert.equal(result.status, "recovered");
+  assert.equal(result.completion.metadata.recoveryRunId, "run-recover");
+});
