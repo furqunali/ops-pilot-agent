@@ -20,3 +20,29 @@ test("rejects plans without an execution step", () => {
     allowed: false, reason: "execution step missing"
   });
 });
+
+test("execution authorization blocks retries when no tool is provided", () => {
+  const { runTaskPipeline } = require("../src/runtime-pipeline");
+  const run = runTaskPipeline("blocked task", null, { maxAttempts: 3 });
+  assert.equal(run.result.status, "skipped");
+  assert.equal(run.result.reason, "tool is required");
+  assert.equal(run.observability.stages.find(stage => stage.stage === "execute").metadata.attempts, 0);
+  assert.equal(run.observability.stages.find(stage => stage.stage === "execute").metadata.authorization.allowed, false);
+});
+
+test("execution authorization permits retry-enabled execution with a tool", () => {
+  const { runTaskPipeline } = require("../src/runtime-pipeline");
+  let calls = 0;
+  const run = runTaskPipeline("authorized task", () => {
+    calls += 1;
+    if (calls === 1) {
+      const error = new Error("temporary");
+      error.code = "ETIMEDOUT";
+      throw error;
+    }
+    return "ok";
+  }, { maxAttempts: 2, baseDelayMs: 0 });
+  assert.equal(run.result.status, "success");
+  assert.equal(calls, 2);
+  assert.equal(run.observability.stages.find(stage => stage.stage === "execute").metadata.authorization.allowed, true);
+});

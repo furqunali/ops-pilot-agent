@@ -5,6 +5,7 @@ const { verifyResult } = require("./task-verifier");
 const { buildRuntimeReport } = require("./runtime-report");
 const { buildPipelineAudit } = require("./runtime-pipeline-audit");
 const { recordStage, summarizeStages } = require("./runtime-observability");
+const { authorizeExecution } = require("./execution-policy");
 
 function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const task = new Task(input);
@@ -18,10 +19,13 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const planFinishedAt = new Date();
   stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt);
 
+  const authorization = authorizeExecution(plan, tool);
   const executeStartedAt = new Date();
-  const result = executeTask(task.input, tool, retryOptions);
+  const result = authorization.allowed
+    ? executeTask(task.input, tool, retryOptions)
+    : { status: "skipped", task: task.input, output: null, reason: authorization.reason };
   const executeFinishedAt = new Date();
-  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts.length });
+  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization });
 
   const verifyStartedAt = new Date();
   const verification = verifyResult(result);
