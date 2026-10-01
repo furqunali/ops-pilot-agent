@@ -133,5 +133,7 @@ test("runCli persists and reloads the execution ledger", () => {
   const secondRecords = JSON.parse(fs.readFileSync(ledgerFile, "utf8"));
   assert.equal(secondRecords.filter(entry => entry.type === "start").length, 2);
   assert.equal(secondRecords.filter(entry => entry.type === "completion").length, 2);
-  assert.notEqual(firstRecords.find(entry => entry.type === "start").metadata.runId, secondRecords.find(entry => entry.type === "start").metadata.runId);
+  const firstRunId = firstRecords.filter(entry => entry.type === "start").at(-1).metadata.runId;
+  const secondRunId = secondRecords.filter(entry => entry.type === "start").at(-1).metadata.runId;
+  assert.notEqual(firstRunId, secondRunId);
 });
