@@ -23,7 +23,8 @@ function summarizeRuns(runs) {
     else metrics.unverified += 1;
 
     metrics.retryAttempts += Number.isFinite(Number(run.retryAttempts)) ? Math.max(0, Number(run.retryAttempts)) : (Array.isArray(run.result.attempts) ? run.result.attempts.length : 0);
-    metrics.durationMs += run.observability?.summary?.durationMs || 0;
+    const durationMs = Number(run.observability?.summary?.durationMs);
+    if (Number.isFinite(durationMs) && durationMs > 0) metrics.durationMs += durationMs;
   }
 
   return Object.freeze(metrics);
