@@ -1,0 +1,10 @@
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { createPolicyKnowledge } = require("../src/finance-policy-knowledge");
+const { DEFAULT_CASES, evaluateFinanceCase, evaluateFinanceSuite } = require("../src/finance-evaluation");
+const knowledge = createPolicyKnowledge([{ id: "payment-threshold", title: "Payment threshold", text: "approval threshold" }, { id: "vendor-blocklist", title: "Blocked vendors", text: "blocked vendors" }]);
+test("case evaluation checks policy and evidence", () => { const r = evaluateFinanceCase(DEFAULT_CASES[1], knowledge); assert.equal(r.passed, true); assert.equal(r.policyPass, true); assert.equal(r.evidencePass, true); });
+test("suite reports aggregate pass rate", () => { const r = evaluateFinanceSuite(DEFAULT_CASES, knowledge); assert.equal(r.total, 3); assert.equal(r.passed, 3); assert.equal(r.failed, 0); assert.equal(r.passRate, 1); });
+test("evidence mismatch fails case", () => { const r = evaluateFinanceCase({ ...DEFAULT_CASES[0], expectedEvidence: ["missing"] }, knowledge); assert.equal(r.policyPass, true); assert.equal(r.evidencePass, false); assert.equal(r.passed, false); });
+test("malformed suite is rejected", () => assert.throws(() => evaluateFinanceSuite(null, knowledge), /testCases must be an array/));
