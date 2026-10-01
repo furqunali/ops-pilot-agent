@@ -82,6 +82,33 @@ node src/dummy.js
 
 Start by reading [`agent-instructions.md`](agent-instructions.md) (the operating spec) and [`examples.md`](examples.md) (the task patterns) to understand the intended behaviour.
 
+
+## Runtime capabilities
+
+The current runtime is implemented as a tested pipeline:
+
+**parse → plan → authorize → execute → verify → report**
+
+The runtime provides retry policy, execution-policy gating, run correlation, stage observability, an execution ledger, durable recovery, runtime metrics, execution inspection, and structured runtime errors. These capabilities are covered by the automated Node test suite.
+
+### Runtime example
+
+```js
+const { runTaskPipeline } = require("./src/runtime-pipeline");
+const { ExecutionLedger } = require("./src/execution-ledger");
+
+const ledger = new ExecutionLedger({ maxEntries: 1000 });
+const run = runTaskPipeline("summarize the incident", text => `done: ${text}`, {
+  runId: "incident-42",
+  ledger,
+  maxAttempts: 3,
+});
+
+console.log(run.runId);
+console.log(run.report);
+console.log(ledger.summarize());
+```
+
 ## 🔒 Security
 
 - **No secrets committed.** Credentials and API keys are intended to be supplied via environment variables, never checked into the repository.
