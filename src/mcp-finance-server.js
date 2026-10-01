@@ -2,7 +2,8 @@
 
 const { invokeFinanceTool } = require("./finance-mcp-tools");
 
-const PROTOCOL_VERSION = "2025-06-18";
+const PROTOCOL_VERSION = "2026-07-28";
+const LEGACY_PROTOCOL_VERSION = "2025-11-25";
 const SERVER_INFO = Object.freeze({ name: "opspilot-finance", version: "0.1.0" });
 
 const TOOL_DEFINITIONS = Object.freeze([
@@ -29,11 +30,22 @@ const TOOL_DEFINITIONS = Object.freeze([
 ]);
 
 function jsonRpcResult(id, result) {
-  return { jsonrpc: "2.0", id, result };
+  return { jsonrpc: "2.0", id, result: { ...result, _meta: { "io.modelcontextprotocol/serverInfo": SERVER_INFO } } };
 }
 
 function jsonRpcError(id, code, message) {
   return { jsonrpc: "2.0", id, error: { code, message } };
+}
+
+function modernRequest(message) {
+  return message.params?._meta?.["io.modelcontextprotocol/protocolVersion"] === PROTOCOL_VERSION;
+}
+
+function validateModernRequest(message) {
+  if (!modernRequest(message)) {
+    return jsonRpcError(message.id, -32602, "modern MCP requests must declare protocol version in _meta");
+  }
+  return null;
 }
 
 function createMcpFinanceServer({ tools }) {
@@ -44,18 +56,33 @@ function createMcpFinanceServer({ tools }) {
       return jsonRpcError(message?.id ?? null, -32600, "invalid request");
     }
 
-    if (message.method === "notifications/initialized") return null;
+    if (message.method === "server/discover") {
+      return jsonRpcResult(message.id, {
+        supportedVersions: [PROTOCOL_VERSION, LEGACY_PROTOCOL_VERSION],
+        capabilities: { tools: {} },
+        ttlMs: 60000,
+        cacheScope: "private",
+      });
+    }
 
     if (message.method === "initialize") {
+      if (message.params?.protocolVersion !== LEGACY_PROTOCOL_VERSION) {
+        return jsonRpcError(message.id, -32602, "unsupported legacy protocol version");
+      }
       return jsonRpcResult(message.id, {
-        protocolVersion: PROTOCOL_VERSION,
+        protocolVersion: LEGACY_PROTOCOL_VERSION,
         capabilities: { tools: {} },
         serverInfo: SERVER_INFO,
       });
     }
 
+    if (message.method === "notifications/initialized") return null;
+
+    const modernError = validateModernRequest(message);
+    if (modernError) return modernError;
+
     if (message.method === "tools/list") {
-      return jsonRpcResult(message.id, { tools: TOOL_DEFINITIONS });
+      return jsonRpcResult(message.id, { tools: TOOL_DEFINITIONS, ttlMs: 60000, cacheScope: "private" });
     }
 
     if (message.method === "tools/call") {
@@ -63,6 +90,9 @@ function createMcpFinanceServer({ tools }) {
       const argumentsValue = message.params?.arguments;
       if (typeof name !== "string" || !name.trim()) {
         return jsonRpcError(message.id, -32602, "tools/call requires a tool name");
+      }
+      if (typeof tools[name] !== "function") {
+        return jsonRpcError(message.id, -32602, "unknown tool");
       }
 
       try {
@@ -72,7 +102,10 @@ function createMcpFinanceServer({ tools }) {
           structuredContent: value,
         });
       } catch (error) {
-        return jsonRpcError(message.id, -32000, error.message || "tool execution failed");
+        return jsonRpcResult(message.id, {
+          isError: true,
+          content: [{ type: "text", text: error.message || "tool execution failed" }],
+        });
       }
     }
 
@@ -82,4 +115,10 @@ function createMcpFinanceServer({ tools }) {
   return Object.freeze({ handle, protocolVersion: PROTOCOL_VERSION, serverInfo: SERVER_INFO });
 }
 
-module.exports = { PROTOCOL_VERSION, SERVER_INFO, TOOL_DEFINITIONS, createMcpFinanceServer };
+module.exports = {
+  PROTOCOL_VERSION,
+  LEGACY_PROTOCOL_VERSION,
+  SERVER_INFO,
+  TOOL_DEFINITIONS,
+  createMcpFinanceServer,
+};
