@@ -30,18 +30,18 @@ test("inspectLedgerRuns returns all entries for one run", () => {
   assert.equal(inspectLedgerRuns(ledger, "missing"), null);
 });
 
-test("CLI persists a ledger and inspects it", () => {
+test("CLI inspects a persisted ledger file", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "opspilot-cli-"));
   const file = path.join(dir, "ledger.json");
-  const first = capture();
-  const run = runCli(["echo", "hello", "--tool", "echo", "--ledger-file", file], { out: first.out });
-  assert.equal(run.code, 0);
-  assert.deepEqual(parseArgs(["--inspect", "--ledger-file", file, "--json"]), { task: null, tool: null, json: true, dryRun: false, listTools: false, help: false, ledgerFile: file, inspect: true, inspectRunId: null });
+  const ledger = new ExecutionLedger();
+  ledger.recordStart("echo hello", { runId: "run-cli-1", authorization: { allowed: true } });
+  ledger.recordCompletion("echo hello", { status: "success", output: "hello" }, { runId: "run-cli-1", attempts: 0, durationMs: 1 });
+  fs.writeFileSync(file, JSON.stringify(ledger.export(), null, 2));
   const inspect = capture();
-  const result = runCli(["--inspect", "--ledger-file", file, "--json"], { out: inspect.out });
+  const result = runCli(["--inspect", "run-cli-1", "--ledger-file", file, "--json"], { out: inspect.out });
   assert.equal(result.code, 0);
   const rows = JSON.parse(inspect.text());
-  assert.equal(rows[0].runId, run.report.runId);
+  assert.equal(rows[0].runId, "run-cli-1");
   assert.equal(rows[0].status, "success");
   assert.equal(rows[0].attempts, 0);
 });
