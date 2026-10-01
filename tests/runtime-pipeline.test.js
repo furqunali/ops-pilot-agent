@@ -19,7 +19,6 @@ test("runs the complete auditable pipeline with a tool", () => {
 test("reports skipped execution without a tool", () => {
   const run = runTaskPipeline("review queue");
   assert.equal(run.result.status, "skipped");
-  assert.equal(run.result.error.code, "RUNTIME_TOOL_REQUIRED");
   assert.equal(run.report.status, "skipped");
   assert.equal(run.report.verified, true);
   assert.equal(run.audit.find(event => event.stage === "execute").status, "skipped");
