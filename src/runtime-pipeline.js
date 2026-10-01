@@ -10,6 +10,9 @@ const { randomUUID } = require("node:crypto");
 const { ERROR_CODES, createRuntimeError, normalizeExecutionError } = require("./runtime-errors");
 
 function runTaskPipeline(input, tool = null, retryOptions = {}) {
+  if (retryOptions === null || typeof retryOptions !== "object" || Array.isArray(retryOptions)) {
+    throw new TypeError("retryOptions must be an object");
+  }
   const task = new Task(input);
   const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
   const executionOptions = { ...retryOptions, runId };
