@@ -61,10 +61,13 @@ function recoverRun(ledger, runId, { authorize, resume }) {
   }
 
   const result = resume(state.start.task);
+  if (!result || typeof result.status !== "string") {
+    throw new TypeError("resume must return a runtime result");
+  }
   const completion = ledger.recordCompletion(
     state.start.task,
     result,
-    { ...state.start.metadata, recovered: true, recovery: "resume" }
+    { ...state.start.metadata, recovered: true, recovery: "resume", recoveryRunId: runId }
   );
 
   return { status: "recovered", runId, result, completion };
