@@ -25,3 +25,9 @@ test("preserves an explicitly supplied run id", () => {
   assert.equal(run.runId, "run-fixed-42");
   assert.equal(run.report.runId, "run-fixed-42");
 });
+
+
+test("correlates every observability stage to the run", () => {
+  const run = runTaskPipeline("audit queue", () => ({ ok: true }), { runId: "run-observe-7" });
+  assert.deepEqual(run.observability.stages.map(stage => stage.metadata.runId), Array(4).fill("run-observe-7"));
+});
