@@ -73,4 +73,5 @@ test("does not retry explicitly non-retryable failures", () => {
   assert.equal(run.result.status, "failed");
   assert.equal(calls, 1);
   assert.equal(run.result.attempts.length, 1);
+  assert.equal(run.result.error.code, "RUNTIME_EXECUTION_FAILED");
 });

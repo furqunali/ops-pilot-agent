@@ -1,6 +1,7 @@
 "use strict";
 
 const { executeWithRetrySync } = require("./retry-policy");
+const { ERROR_CODES, createRuntimeError, normalizeExecutionError } = require("./runtime-errors");
 
 function executeTask(task, tool = null, retryOptions = {}) {
   if (!task || typeof task !== "string" || !task.trim()) {
@@ -19,7 +20,7 @@ function executeTask(task, tool = null, retryOptions = {}) {
   const execution = executeWithRetrySync(() => tool(task), retryOptions);
   if (runId) execution.attempts = execution.attempts.map(attempt => ({ ...attempt, runId }));
   if (execution.error) {
-    const result = { status: "failed", task, output: null, error: execution.error };
+    const result = { status: "failed", task, output: null, error: normalizeExecutionError(createRuntimeError(ERROR_CODES.EXECUTION_FAILED, "tool execution failed", { task, runId, attempts: execution.attempts.length }, execution.error)) };
     Object.defineProperty(result, "attempts", { value: execution.attempts, enumerable: false });
     return result;
   }
