@@ -86,7 +86,8 @@ function parseArgs(argv) {
     dryRun: false,
     listTools: false,
     help: false,
-    ledgerFile: null,\n    inspect: false,\n    inspectRunId: null,
+    ledgerFile: null,
+    inspect: false,\n    inspectRunId: null,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
