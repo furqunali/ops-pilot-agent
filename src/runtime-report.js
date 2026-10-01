@@ -4,6 +4,12 @@ function buildRuntimeReport(run) {
   if (!run.verification || typeof run.verification.valid !== "boolean") throw new TypeError("run.verification.valid must be boolean");
   const steps = Array.isArray(run.plan?.steps) ? run.plan.steps.map(step => ({ id: step.id, action: step.action, status: step.status })) : [];
   const audit = Array.isArray(run.audit) ? run.audit.map(event => ({ stage: event.stage, status: event.status, durationMs: Number(event.durationMs) || 0 })) : [];
-  return { task: run.task.input, status: run.result.status, verified: run.verification.valid, output: run.result.output ?? null, error: run.result.error ?? null, steps, audit };
+  const observability = run.observability && run.observability.summary ? {
+    ...run.observability.summary,
+    stages: Array.isArray(run.observability.stages)
+      ? run.observability.stages.map(stage => ({ ...stage }))
+      : [],
+  } : null;
+  return { task: run.task.input, status: run.result.status, verified: run.verification.valid, output: run.result.output ?? null, error: run.result.error ?? null, steps, audit, observability };
 }
 module.exports = { buildRuntimeReport };
