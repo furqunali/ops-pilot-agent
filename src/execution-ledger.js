@@ -74,6 +74,14 @@ class ExecutionLedger {
 
   import(records) {
     if (!Array.isArray(records)) throw new TypeError("records must be an array");
+    for (const record of records) {
+      if (!record || typeof record !== "object" || !Number.isInteger(Number(record.id)) || !record.timestamp) {
+        throw new TypeError("ledger records must contain id and timestamp");
+      }
+      if (Number.isNaN(new Date(record.timestamp).getTime())) {
+        throw new TypeError("ledger record timestamp must be valid");
+      }
+    }
     this.entries = records.slice(-this.maxEntries).map(record => ({
       ...record,
       timestamp: new Date(record.timestamp),
