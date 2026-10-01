@@ -5,6 +5,7 @@ const { buildRuntimeReport } = require("./runtime-report");
 const { ExecutionLedger } = require("./execution-ledger");
 const { inspectLedgerRuns } = require("./execution-inspection");
 const fs = require("node:fs");
+const { randomUUID } = require("node:crypto");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -236,7 +237,8 @@ function runCli(argv, options = {}) {
 
   const runner = tool ? (input) => tool.execute(input) : null;
   const ledger = args.ledgerFile ? new ExecutionLedger() : null;
-  const run = runTask(args.task, runner, ledger ? { ledger } : {});
+  const runId = randomUUID();
+  const run = runTask(args.task, runner, ledger ? { ledger, runId } : { runId });
   if (ledger && ledger.entries.length === 0) {
     ledger.recordStart(args.task, { runId: run.runId, authorization: { allowed: Boolean(tool) } });
     ledger.recordCompletion(args.task, run.result, { runId: run.runId, attempts: run.result.attempts?.length || 0, verified: run.verification.valid });
