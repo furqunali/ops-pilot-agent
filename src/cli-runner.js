@@ -2,6 +2,9 @@ const { planTask } = require("./task-planner");
 const { runTask } = require("./runtime-orchestrator");
 const { ToolRegistry } = require("./tool-registry");
 const { buildRuntimeReport } = require("./runtime-report");
+const { ExecutionLedger } = require("./execution-ledger");
+const { inspectLedgerRuns } = require("./execution-inspection");
+const fs = require("node:fs");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -14,6 +17,8 @@ const USAGE = [
   "  --dry-run       Plan only; skip execution (no tool is invoked)",
   "  --json          Emit the runtime report as JSON instead of text",
   "  --list-tools    List the registered tools and exit",
+  "  --ledger-file <path>  Persist or inspect execution ledger JSON",
+  "  --inspect [run-id]    Inspect recent runs or one run from the ledger",
   "  -h, --help      Show this help and exit",
   "",
   "Examples:",
@@ -156,7 +161,7 @@ function runCli(argv, options = {}) {
     return { code: 0, report: null };
   }
 
-  if (args.listTools) {
+  if (args.inspect) {\n    if (!args.ledgerFile) { out("error: --inspect requires --ledger-file"); return { code: 2, report: null }; }\n    try {\n      const ledger = new ExecutionLedger();\n      ledger.import(JSON.parse(fs.readFileSync(args.ledgerFile, "utf8")));\n      const inspected = inspectLedgerRuns(ledger, args.inspectRunId);\n      if (inspected === null) { out(`error: run not found: ${args.inspectRunId}`); return { code: 1, report: null }; }\n      out(args.json ? JSON.stringify(inspected, null, 2) : inspected.map((entry) => `${entry.runId} ${entry.type} ${entry.status} attempts=${entry.attempts} durationMs=${entry.durationMs} authorization=${entry.authorization ?? "-"}`).join("\\n"));\n      return { code: 0, report: inspected };\n    } catch (error) { out(`error: ${error.message}`); return { code: 2, report: null }; }\n  }\n\n  if (args.listTools) {
     for (const tool of registry.list()) {
       out(`${tool.name} [${tool.capabilities.join(", ")}]`);
     }
