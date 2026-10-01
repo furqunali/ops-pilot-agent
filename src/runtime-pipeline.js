@@ -7,6 +7,7 @@ const { buildPipelineAudit } = require("./runtime-pipeline-audit");
 const { recordStage, summarizeStages } = require("./runtime-observability");
 const { authorizeExecution } = require("./execution-policy");
 const { randomUUID } = require("node:crypto");
+const { ERROR_CODES, createRuntimeError, normalizeExecutionError } = require("./runtime-errors");
 
 function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const task = new Task(input);
