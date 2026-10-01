@@ -10,14 +10,20 @@ function executeTask(task, tool = null, retryOptions = {}) {
     throw new TypeError("tool must be a function or null");
   }
   if (tool === null) {
-    return { status: "skipped", task, output: null, attempts: [] };
+    const result = { status: "skipped", task, output: null };
+    Object.defineProperty(result, "attempts", { value: [], enumerable: false });
+    return result;
   }
 
   const execution = executeWithRetrySync(() => tool(task), retryOptions);
   if (execution.error) {
-    return { status: "failed", task, output: null, error: execution.error, attempts: execution.attempts };
+    const result = { status: "failed", task, output: null, error: execution.error };
+    Object.defineProperty(result, "attempts", { value: execution.attempts, enumerable: false });
+    return result;
   }
-  return { status: "success", task, output: execution.value, attempts: execution.attempts };
+  const result = { status: "success", task, output: execution.value };
+  Object.defineProperty(result, "attempts", { value: execution.attempts, enumerable: false });
+  return result;
 }
 
 module.exports = { executeTask };
