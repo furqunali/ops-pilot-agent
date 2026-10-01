@@ -181,7 +181,7 @@ function runCli(argv, options = {}) {
     return { code: 0, report: null };
   }
 
-  if (args.inspect !== false) {
+  if (args.inspect) {
     if (!args.ledgerFile) {
       out("error: --inspect requires --ledger-file");
       return { code: 2, report: null };
