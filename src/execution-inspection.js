@@ -24,7 +24,7 @@ function inspectLedgerRuns(ledger, runId = null) {
     if (typeof runId !== "string" || !runId.trim()) throw new TypeError("runId must be a non-empty string");
     const matches = entries.filter(entry => entry.metadata?.runId === runId);
     if (matches.length === 0) return null;
-    return matches.map(formatEntry);
+    return matches.slice().reverse().map(formatEntry);
   }
 
   const seen = new Set();
