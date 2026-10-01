@@ -87,7 +87,8 @@ function parseArgs(argv) {
     listTools: false,
     help: false,
     ledgerFile: null,
-    inspect: false,\n    inspectRunId: null,
+    inspect: false,
+    inspectRunId: null,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -235,7 +236,8 @@ function runCli(argv, options = {}) {
 
   const runner = tool ? (input) => tool.execute(input) : null;
   const ledger = args.ledgerFile ? new ExecutionLedger() : null;
-  const run = runTask(args.task, runner, ledger ? { ledger } : {});\n  if (ledger) fs.writeFileSync(args.ledgerFile, JSON.stringify(ledger.export(), null, 2));
+  const run = runTask(args.task, runner, ledger ? { ledger } : {});
+  if (ledger) fs.writeFileSync(args.ledgerFile, JSON.stringify(ledger.export(), null, 2));
   const report = buildRuntimeReport({ ...run, plan });
 
   out(args.json ? JSON.stringify(report, null, 2) : formatReport(report));
