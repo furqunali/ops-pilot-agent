@@ -6,7 +6,7 @@ const { buildRuntimeReport } = require("./runtime-report");
 const { buildPipelineAudit } = require("./runtime-pipeline-audit");
 const { recordStage, summarizeStages } = require("./runtime-observability");
 
-function runTaskPipeline(input, tool = null) {
+function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const task = new Task(input);
   let stages = [];
   const parseStartedAt = new Date();
@@ -19,9 +19,9 @@ function runTaskPipeline(input, tool = null) {
   stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt);
 
   const executeStartedAt = new Date();
-  const result = executeTask(task.input, tool);
+  const result = executeTask(task.input, tool, retryOptions);
   const executeFinishedAt = new Date();
-  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt);
+  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts.length });
 
   const verifyStartedAt = new Date();
   const verification = verifyResult(result);

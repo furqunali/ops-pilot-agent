@@ -7,7 +7,7 @@ function buildPipelineAudit(task, result, verification) {
   return [
     createAuditEvent(task.input, "parse", "success"),
     createAuditEvent(task.input, "plan", "success"),
-    createAuditEvent(task.input, "execute", result.status),
+    createAuditEvent(task.input, "execute", result.status, { attempts: Array.isArray(result.attempts) ? result.attempts.length : 0 }),
     createAuditEvent(task.input, "verify", verification.valid ? "success" : "failed"),
     createAuditEvent(task.input, "report", "success"),
   ];
