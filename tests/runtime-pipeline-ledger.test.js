@@ -1,0 +1,41 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { runTaskPipeline } = require("../src/runtime-pipeline");
+const { ExecutionLedger } = require("../src/execution-ledger");
+
+test("records successful pipeline execution in an injected ledger", () => {
+  const ledger = new ExecutionLedger();
+  const run = runTaskPipeline("sync invoices", input => ({ synced: input }), { ledger });
+
+  assert.equal(run.result.status, "success");
+  assert.equal(ledger.findByType("start").length, 1);
+  assert.equal(ledger.findByType("completion").length, 1);
+
+  const start = ledger.findByType("start")[0];
+  const completion = ledger.findByType("completion")[0];
+  assert.equal(start.task, "sync invoices");
+  assert.equal(start.status, "running");
+  assert.equal(start.metadata.authorization.allowed, true);
+  assert.equal(completion.status, "success");
+  assert.equal(completion.metadata.attempts, 1);
+  assert.equal(completion.metadata.verified, true);
+});
+
+test("records skipped execution and authorization outcome in the ledger", () => {
+  const ledger = new ExecutionLedger();
+  const run = runTaskPipeline("review queue", null, { ledger });
+
+  assert.equal(run.result.status, "skipped");
+  const start = ledger.findByType("start")[0];
+  const completion = ledger.findByType("completion")[0];
+  assert.equal(start.metadata.authorization.allowed, false);
+  assert.equal(start.metadata.authorization.reason, "tool is required");
+  assert.equal(completion.status, "skipped");
+  assert.equal(completion.metadata.attempts, 0);
+});
+
+test("keeps ledger integration opt-in", () => {
+  const run = runTaskPipeline("review queue");
+  assert.equal(run.result.status, "skipped");
+  assert.equal("ledger" in run, false);
+});
