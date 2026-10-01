@@ -2,6 +2,10 @@ const { planTask } = require("./task-planner");
 const { runTask } = require("./runtime-orchestrator");
 const { ToolRegistry } = require("./tool-registry");
 const { buildRuntimeReport } = require("./runtime-report");
+const { ExecutionLedger } = require("./execution-ledger");
+const { inspectLedgerRuns } = require("./execution-inspection");
+const fs = require("node:fs");
+const { randomUUID } = require("node:crypto");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -14,6 +18,8 @@ const USAGE = [
   "  --dry-run       Plan only; skip execution (no tool is invoked)",
   "  --json          Emit the runtime report as JSON instead of text",
   "  --list-tools    List the registered tools and exit",
+  "  --ledger-file <path>  Persist or inspect execution ledger JSON",
+  "  --inspect [run-id]    Inspect recent runs or one run from the ledger",
   "  -h, --help      Show this help and exit",
   "",
   "Examples:",
@@ -81,6 +87,9 @@ function parseArgs(argv) {
     dryRun: false,
     listTools: false,
     help: false,
+    ledgerFile: null,
+    inspect: false,
+    inspectRunId: null,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -99,6 +108,22 @@ function parseArgs(argv) {
       case "--list-tools":
         parsed.listTools = true;
         break;
+      case "--ledger-file": {
+        const value = argv[i + 1];
+        if (typeof value !== "string" || value.startsWith("-")) throw new Error("--ledger-file requires a path");
+        parsed.ledgerFile = value;
+        i += 1;
+        break;
+      }
+      case "--inspect": {
+        parsed.inspect = true;
+        const value = argv[i + 1];
+        if (typeof value === "string" && !value.startsWith("-")) {
+          parsed.inspectRunId = value;
+          i += 1;
+        }
+        break;
+      }
       case "--tool": {
         const value = argv[i + 1];
         if (typeof value !== "string" || value.startsWith("-")) {
@@ -156,6 +181,29 @@ function runCli(argv, options = {}) {
     return { code: 0, report: null };
   }
 
+  if (args.inspect) {
+    if (!args.ledgerFile) {
+      out("error: --inspect requires --ledger-file");
+      return { code: 2, report: null };
+    }
+    try {
+      const ledger = new ExecutionLedger();
+      ledger.import(JSON.parse(fs.readFileSync(args.ledgerFile, "utf8")));
+      const inspected = inspectLedgerRuns(ledger, args.inspectRunId);
+      if (inspected === null) {
+        out(`error: run not found: ${args.inspectRunId}`);
+        return { code: 1, report: null };
+      }
+      out(args.json
+        ? JSON.stringify(inspected, null, 2)
+        : inspected.map((entry) => `${entry.runId} ${entry.type} ${entry.status} attempts=${entry.attempts} durationMs=${entry.durationMs} authorization=${entry.authorization ?? "-"}`).join("\n"));
+      return { code: 0, report: inspected };
+    } catch (error) {
+      out(`error: ${error.message}`);
+      return { code: 2, report: null };
+    }
+  }
+
   if (args.listTools) {
     for (const tool of registry.list()) {
       out(`${tool.name} [${tool.capabilities.join(", ")}]`);
@@ -188,7 +236,14 @@ function runCli(argv, options = {}) {
   }
 
   const runner = tool ? (input) => tool.execute(input) : null;
-  const run = runTask(args.task, runner);
+  const ledger = args.ledgerFile ? new ExecutionLedger() : null;
+  const runId = randomUUID();
+  const run = runTask(args.task, runner, ledger ? { ledger, runId } : { runId });
+  if (ledger && ledger.entries.length === 0) {
+    ledger.recordStart(args.task, { runId: run.runId, authorization: { allowed: Boolean(tool) } });
+    ledger.recordCompletion(args.task, run.result, { runId: run.runId, attempts: run.result.attempts?.length || 0, verified: run.verification.valid });
+  }
+  if (ledger) fs.writeFileSync(args.ledgerFile, JSON.stringify(ledger.export(), null, 2));
   const report = buildRuntimeReport({ ...run, plan });
 
   out(args.json ? JSON.stringify(report, null, 2) : formatReport(report));
