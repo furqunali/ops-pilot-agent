@@ -24,12 +24,12 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   let stages = [];
   const parseStartedAt = new Date();
   const parseFinishedAt = new Date();
-  stages = recordStage(stages, "parse", "success", parseStartedAt, parseFinishedAt);
+  stages = recordStage(stages, "parse", "success", parseStartedAt, parseFinishedAt, { runId });
 
   const planStartedAt = new Date();
   const plan = planTask(task);
   const planFinishedAt = new Date();
-  stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt);
+  stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt, { runId });
 
   const authorization = authorizeExecution(plan, tool);
   if (ledgerStart) ledgerStart.metadata.authorization = authorization;
@@ -38,12 +38,12 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
     ? executeTask(task.input, tool, executionOptions)
     : { status: "skipped", task: task.input, output: null, reason: authorization.reason };
   const executeFinishedAt = new Date();
-  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization });
+  stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization, runId });
 
   const verifyStartedAt = new Date();
   const verification = verifyResult(result);
   const verifyFinishedAt = new Date();
-  stages = recordStage(stages, "verify", verification.valid ? "success" : "failed", verifyStartedAt, verifyFinishedAt);
+  stages = recordStage(stages, "verify", verification.valid ? "success" : "failed", verifyStartedAt, verifyFinishedAt, { runId });
 
   const run = { task, plan, result, verification, runId };
   const audit = buildPipelineAudit(task, result, verification);
