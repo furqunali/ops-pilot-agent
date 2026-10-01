@@ -22,7 +22,7 @@ function summarizeRuns(runs) {
     if (run.verification.valid) metrics.verified += 1;
     else metrics.unverified += 1;
 
-    metrics.retryAttempts += Array.isArray(run.result.attempts) ? run.result.attempts.length : 0;
+    metrics.retryAttempts += Number.isFinite(Number(run.retryAttempts)) ? Math.max(0, Number(run.retryAttempts)) : (Array.isArray(run.result.attempts) ? run.result.attempts.length : 0);
     metrics.durationMs += run.observability?.summary?.durationMs || 0;
   }
 
@@ -34,6 +34,7 @@ function metricsFromLedger(ledger) {
   const completions = ledger.entries.filter(entry => entry.type === "completion");
   return summarizeRuns(completions.map(entry => ({
     result: entry.result,
+    retryAttempts: entry.metadata?.attempts,
     verification: { valid: Boolean(entry.metadata?.verified) },
     observability: { summary: { durationMs: Number(entry.metadata?.durationMs) || 0 } },
   })));

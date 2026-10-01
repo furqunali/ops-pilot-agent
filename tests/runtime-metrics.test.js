@@ -37,8 +37,12 @@ test("metrics aggregation does not mutate source records", () => {
 
 test("metricsFromLedger reads completion records", () => {
   const ledger = new ExecutionLedger();
-  ledger.recordCompletion("a", { status: "success", attempts: [{}, {}] }, { verified: true, durationMs: 10 });
-  ledger.recordCompletion("b", { status: "failed", attempts: [{}] }, { verified: false, durationMs: 4 });
+  const success = { status: "success" };
+  Object.defineProperty(success, "attempts", { value: [{}, {}], enumerable: false });
+  const failed = { status: "failed" };
+  Object.defineProperty(failed, "attempts", { value: [{}], enumerable: false });
+  ledger.recordCompletion("a", success, { verified: true, attempts: 2, durationMs: 10 });
+  ledger.recordCompletion("b", failed, { verified: false, attempts: 1, durationMs: 4 });
 
   assert.deepEqual(metricsFromLedger(ledger), {
     total: 2,
