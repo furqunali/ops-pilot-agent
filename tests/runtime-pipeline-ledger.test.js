@@ -39,3 +39,10 @@ test("keeps ledger integration opt-in", () => {
   assert.equal(run.result.status, "skipped");
   assert.equal("ledger" in run, false);
 });
+
+
+test("ledger rejects malformed imported records", () => {
+  const ledger = new ExecutionLedger();
+  assert.throws(() => ledger.import([{ id: 1, timestamp: "not-a-date" }]), /timestamp must be valid/);
+  assert.throws(() => ledger.import([{ timestamp: new Date().toISOString() }]), /id and timestamp/);
+});
