@@ -116,3 +116,24 @@ test("formatReport renders plan steps and an error line", () => {
   assert.match(text, /1\. parse \[ready\]/);
   assert.match(text, /Error: boom/);
 });
+
+
+test("runCli persists and reloads the execution ledger", () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const path = require("node:path");
+  const ledgerFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "opspilot-")), "ledger.json");
+  const first = runCli(["compile", "the", "report", "--ledger-file", ledgerFile], { out: capture().out });
+  assert.equal(first.code, 0);
+  const firstRecords = JSON.parse(fs.readFileSync(ledgerFile, "utf8"));
+  assert.equal(firstRecords.filter(entry => entry.type === "start").length, 1);
+  assert.equal(firstRecords.filter(entry => entry.type === "completion").length, 1);
+  const second = runCli(["echo", "the", "handoff", "--ledger-file", ledgerFile], { out: capture().out });
+  assert.equal(second.code, 0);
+  const secondRecords = JSON.parse(fs.readFileSync(ledgerFile, "utf8"));
+  assert.equal(secondRecords.filter(entry => entry.type === "start").length, 2);
+  assert.equal(secondRecords.filter(entry => entry.type === "completion").length, 2);
+  const firstRunId = firstRecords.filter(entry => entry.type === "start").at(-1).metadata.runId;
+  const secondRunId = secondRecords.filter(entry => entry.type === "start").at(-1).metadata.runId;
+  assert.notEqual(firstRunId, secondRunId);
+});

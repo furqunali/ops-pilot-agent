@@ -237,12 +237,11 @@ function runCli(argv, options = {}) {
 
   const runner = tool ? (input) => tool.execute(input) : null;
   const ledger = args.ledgerFile ? new ExecutionLedger() : null;
+  if (ledger && fs.existsSync(args.ledgerFile)) {
+    ledger.import(JSON.parse(fs.readFileSync(args.ledgerFile, "utf8")));
+  }
   const runId = randomUUID();
   const run = runTask(args.task, runner, ledger ? { ledger, runId } : { runId });
-  if (ledger && ledger.entries.length === 0) {
-    ledger.recordStart(args.task, { runId: run.runId, authorization: { allowed: Boolean(tool) } });
-    ledger.recordCompletion(args.task, run.result, { runId: run.runId, attempts: run.result.attempts?.length || 0, verified: run.verification.valid });
-  }
   if (ledger) fs.writeFileSync(args.ledgerFile, JSON.stringify(ledger.export(), null, 2));
   const report = buildRuntimeReport({ ...run, plan });
 
