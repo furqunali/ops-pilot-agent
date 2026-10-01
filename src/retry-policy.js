@@ -18,6 +18,7 @@ function calculateBackoff(attempt, baseDelayMs = 100, maxDelayMs = 10_000) {
 }
 
 function createRetryPolicy(options = {}) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) throw new TypeError("options must be an object");
   const maxAttempts = Number.isInteger(options.maxAttempts) && options.maxAttempts > 0 ? options.maxAttempts : 3;
   const baseDelayMs = Number.isFinite(options.baseDelayMs) && options.baseDelayMs >= 0 ? options.baseDelayMs : 100;
   const maxDelayMs = Number.isFinite(options.maxDelayMs) && options.maxDelayMs >= 0 ? options.maxDelayMs : 10_000;
