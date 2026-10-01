@@ -35,6 +35,25 @@ function createRetryPolicy(options = {}) {
   });
 }
 
+function executeWithRetrySync(operation, options = {}) {
+  if (typeof operation !== "function") throw new TypeError("operation must be a function");
+  const policy = createRetryPolicy(options);
+  const attempts = [];
+  for (let attempt = 0; attempt < policy.maxAttempts; attempt += 1) {
+    const startedAt = new Date();
+    try {
+      const value = operation({ attempt });
+      attempts.push({ attempt, status: "success", startedAt, finishedAt: new Date() });
+      return { value, attempts };
+    } catch (error) {
+      const normalized = normalizeExecutionError(error);
+      attempts.push({ attempt, status: "failed", error: normalized, startedAt, finishedAt: new Date() });
+      if (!policy.shouldRetry(error, attempt)) return { value: null, attempts, error: normalized };
+    }
+  }
+  return { value: null, attempts, error: { name: "RetryError", message: "retry policy exhausted" } };
+}
+
 async function executeWithRetry(operation, options = {}) {
   if (typeof operation !== "function") throw new TypeError("operation must be a function");
   const policy = createRetryPolicy(options);
@@ -64,4 +83,4 @@ async function executeWithRetry(operation, options = {}) {
   return { value: null, attempts, error: { name: "RetryError", message: "retry policy exhausted" } };
 }
 
-module.exports = { isRetryableError, calculateBackoff, createRetryPolicy, executeWithRetry };
+module.exports = { isRetryableError, calculateBackoff, createRetryPolicy, executeWithRetry, executeWithRetrySync };
