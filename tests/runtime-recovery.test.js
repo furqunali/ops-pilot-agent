@@ -101,3 +101,16 @@ test("recovery completion records the recovery correlation id", () => {
   assert.equal(result.status, "recovered");
   assert.equal(result.completion.metadata.recoveryRunId, "run-recover");
 });
+
+
+test("recovery preserves run correlation on completion", () => {
+  const ledger = new ExecutionLedger();
+  ledger.recordStart("resume job", { runId: "run-correlation", authorization: "pending" });
+  const result = recoverRun(ledger, "run-correlation", {
+    authorize: () => ({ allowed: true }),
+    resume: task => ({ status: "success", task, attempts: [] }),
+  });
+  assert.equal(result.completion.metadata.runId, "run-correlation");
+  assert.equal(result.completion.metadata.recoveryRunId, "run-correlation");
+  assert.equal(inspectRun(ledger, "run-correlation").recoverable, false);
+});
