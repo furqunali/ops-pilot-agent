@@ -46,3 +46,12 @@ test("ledger rejects malformed imported records", () => {
   assert.throws(() => ledger.import([{ id: 1, timestamp: "not-a-date" }]), /timestamp must be valid/);
   assert.throws(() => ledger.import([{ timestamp: new Date().toISOString() }]), /id and timestamp/);
 });
+
+
+test("rejects duplicate ledger ids on import", () => {
+  const ledger = new ExecutionLedger();
+  assert.throws(() => ledger.import([
+    { id: 1, timestamp: new Date().toISOString(), type: "start" },
+    { id: 1, timestamp: new Date().toISOString(), type: "completion" }
+  ]), /ids must be unique/);
+});
