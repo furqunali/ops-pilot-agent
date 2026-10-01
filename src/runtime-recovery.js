@@ -60,11 +60,11 @@ function recoverRun(ledger, runId, { authorize, resume }) {
     return { status: "blocked", reason: decision?.reason || "recovery is not authorized", runId };
   }
 
-  const result = resume(state.start.task);
+  const result = resume(state.start.task);\n  if (!result || typeof result.status !== "string") {\n    throw new TypeError("resume must return a runtime result");\n  }
   const completion = ledger.recordCompletion(
     state.start.task,
     result,
-    { ...state.start.metadata, recovered: true, recovery: "resume" }
+    { ...state.start.metadata, recovered: true, recovery: "resume", recoveryRunId: runId }
   );
 
   return { status: "recovered", runId, result, completion };
