@@ -1,4 +1,8 @@
-function executeTask(task, tool = null) {
+"use strict";
+
+const { executeWithRetrySync } = require("./retry-policy");
+
+function executeTask(task, tool = null, retryOptions = {}) {
   if (!task || typeof task !== "string" || !task.trim()) {
     throw new TypeError("task must be a non-empty string");
   }
@@ -6,9 +10,14 @@ function executeTask(task, tool = null) {
     throw new TypeError("tool must be a function or null");
   }
   if (tool === null) {
-    return { status: "skipped", task, output: null };
+    return { status: "skipped", task, output: null, attempts: [] };
   }
-  return { status: "success", task, output: tool(task) };
+
+  const execution = executeWithRetrySync(() => tool(task), retryOptions);
+  if (execution.error) {
+    return { status: "failed", task, output: null, error: execution.error, attempts: execution.attempts };
+  }
+  return { status: "success", task, output: execution.value, attempts: execution.attempts };
 }
 
 module.exports = { executeTask };
