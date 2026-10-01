@@ -14,10 +14,12 @@ test("searches finance policy knowledge deterministically", () => {
   assert.equal(knowledge.search("blocked vendors")[0].id, "policy-vendor");
 });
 
-test("returns isolated document data", () => {
-  const listed = knowledge.list();
-  listed[0].title = "changed";
-  assert.equal(knowledge.list()[0].title, "Payment Approval");
+test("returns a fresh list without exposing mutable collection state", () => {
+  const first = knowledge.list();
+  const second = knowledge.list();
+  assert.notEqual(first, second);
+  assert.deepEqual(first, second);
+  assert.equal(Object.isFrozen(first[0]), true);
 });
 
 test("ignores blank search queries", () => {
