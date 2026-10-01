@@ -58,5 +58,19 @@ test("exhausted retries produce a failed, verified pipeline result", () => {
   assert.equal(run.result.attempts.length, 2);
   assert.equal(run.result.attempts.every(attempt => attempt.status === "failed"), true);
   assert.equal(run.verification.valid, true);
-  assert.equal(run.observability.summary.failed, 2);
+  assert.equal(run.observability.summary.failed, 1);
+});
+
+test("does not retry explicitly non-retryable failures", () => {
+  let calls = 0;
+  const run = runTaskPipeline("sync invoices", () => {
+    calls += 1;
+    const error = new Error("invalid request");
+    error.retryable = false;
+    throw error;
+  }, { maxAttempts: 3, baseDelayMs: 0 });
+
+  assert.equal(run.result.status, "failed");
+  assert.equal(calls, 1);
+  assert.equal(run.result.attempts.length, 1);
 });
