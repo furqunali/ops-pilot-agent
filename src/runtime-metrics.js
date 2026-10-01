@@ -33,7 +33,7 @@ function metricsFromLedger(ledger) {
   if (!ledger || !Array.isArray(ledger.entries)) throw new TypeError("ledger must expose entries");
   const completions = ledger.entries.filter(entry => entry.type === "completion");
   return summarizeRuns(completions.map(entry => ({
-    result: entry.result,
+    result: { ...entry.result, attempts: Array.isArray(entry.metadata?.attempts) ? Array.from({ length: Number(entry.metadata.attempts) || 0 }, () => ({})) : entry.result?.attempts },
     verification: { valid: Boolean(entry.metadata?.verified) },
     observability: { summary: { durationMs: Number(entry.metadata?.durationMs) || 0 } },
   })));
