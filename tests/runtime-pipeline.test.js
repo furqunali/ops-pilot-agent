@@ -23,3 +23,40 @@ test("reports skipped execution without a tool", () => {
   assert.equal(run.report.verified, true);
   assert.equal(run.audit.find(event => event.stage === "execute").status, "skipped");
 });
+
+test("retries retryable execution failures and records attempts", () => {
+  let calls = 0;
+  const run = runTaskPipeline("sync invoices", () => {
+    calls += 1;
+    if (calls < 3) {
+      const error = new Error("temporary outage");
+      error.code = "ETIMEDOUT";
+      throw error;
+    }
+    return { synced: true };
+  }, { maxAttempts: 3, baseDelayMs: 0 });
+
+  assert.equal(run.result.status, "success");
+  assert.equal(calls, 3);
+  assert.equal(run.result.attempts.length, 3);
+  assert.deepEqual(run.result.attempts.map(attempt => attempt.status), ["failed", "failed", "success"]);
+  assert.equal(run.observability.stages.find(stage => stage.stage === "execute").metadata.attempts, 3);
+  assert.equal(run.audit.find(event => event.stage === "execute").details.attempts, 3);
+});
+
+test("exhausted retries produce a failed, verified pipeline result", () => {
+  let calls = 0;
+  const run = runTaskPipeline("sync invoices", () => {
+    calls += 1;
+    const error = new Error("temporary outage");
+    error.code = "RATE_LIMITED";
+    throw error;
+  }, { maxAttempts: 2, baseDelayMs: 0 });
+
+  assert.equal(run.result.status, "failed");
+  assert.equal(calls, 2);
+  assert.equal(run.result.attempts.length, 2);
+  assert.equal(run.result.attempts.every(attempt => attempt.status === "failed"), true);
+  assert.equal(run.verification.valid, true);
+  assert.equal(run.observability.summary.failed, 2);
+});
