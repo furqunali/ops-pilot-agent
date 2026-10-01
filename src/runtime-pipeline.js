@@ -45,7 +45,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const audit = buildPipelineAudit(task, result, verification);
   const observability = { stages, summary: summarizeStages(stages) };
   const report = buildRuntimeReport({ ...run, audit, observability });
-  if (ledger) ledger.recordCompletion(task.input, result, { runId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid });
+  if (ledger) ledger.recordCompletion(task.input, result, { runId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs });
 
   return { ...run, report: { ...report, runId }, audit, observability };
 }
