@@ -91,6 +91,19 @@ The current runtime is implemented as a tested pipeline:
 
 The runtime provides retry policy, execution-policy gating, run correlation, stage observability, an execution ledger, durable recovery, runtime metrics, execution inspection, and structured runtime errors. These capabilities are covered by the automated Node test suite.
 
+### CLI product surface
+
+OpsPilot ships a dependency-free CLI for running the runtime against built-in tools. It supports natural-language keyword routing, explicit tool selection, dry runs, JSON output, and durable execution-ledger inspection.
+
+```bash
+opspilot "compile the weekly operations report"
+opspilot "echo the handoff note" --tool echo --json
+opspilot "sync the invoices" --ledger-file ./ops-ledger.json
+opspilot --inspect --ledger-file ./ops-ledger.json
+```
+
+The ledger file is append-preserving: subsequent CLI runs reload prior records, execute with a fresh correlated run ID, and persist the updated history.
+
 ### Runtime example
 
 ```js
