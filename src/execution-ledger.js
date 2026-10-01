@@ -82,6 +82,9 @@ class ExecutionLedger {
         throw new TypeError("ledger record timestamp must be valid");
       }
     }
+    const ids = records.map(record => Number(record.id));
+    if (new Set(ids).size !== ids.length) throw new TypeError("ledger record ids must be unique");
+    if (ids.some(id => !Number.isInteger(id) || id < 1)) throw new TypeError("ledger record ids must be positive integers");
     this.entries = records.slice(-this.maxEntries).map(record => ({
       ...record,
       timestamp: new Date(record.timestamp),
