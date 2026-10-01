@@ -13,3 +13,12 @@ test("summarizes stage outcomes and duration", () => {
     { status: "failed", durationMs: 50 }
   ]), { total: 2, successful: 1, failed: 1, durationMs: 150 });
 });
+
+
+test("rejects invalid timestamps", () => {
+  assert.throws(() => recordStage([], "execute", "success", new Date("bad"), new Date()), /valid Date values/);
+});
+
+test("clamps negative summary durations", () => {
+  assert.equal(summarizeStages([{ status: "success", durationMs: -50 }]).durationMs, 0);
+});
