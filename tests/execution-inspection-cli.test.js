@@ -37,7 +37,7 @@ test("CLI persists a ledger and inspects it", () => {
   const run = runCli(["echo", "hello", "--tool", "echo", "--ledger-file", file], { out: first.out });
   assert.equal(run.code, 0);
   const inspect = capture();
-  const result = runCli(["--inspect", "--ledger-file", file, "--json"], { out: inspect.out });
+  const result = runCli(["--inspect", run.report.runId, "--ledger-file", file, "--json"], { out: inspect.out });
   assert.equal(result.code, 0);
   const rows = JSON.parse(inspect.text());
   assert.equal(rows[0].runId, run.report.runId);
