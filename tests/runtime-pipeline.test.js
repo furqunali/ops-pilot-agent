@@ -75,3 +75,9 @@ test("does not retry explicitly non-retryable failures", () => {
   assert.equal(run.result.attempts.length, 1);
   assert.equal(run.result.error.code, "RUNTIME_EXECUTION_FAILED");
 });
+
+
+test("rejects invalid runtime pipeline options", () => {
+  assert.throws(() => runTaskPipeline("task", null, null), /retryOptions must be an object/);
+  assert.throws(() => runTaskPipeline("task", null, []), /retryOptions must be an object/);
+});
