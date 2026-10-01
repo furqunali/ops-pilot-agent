@@ -13,7 +13,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   if (ledger !== null && (!ledger || typeof ledger.recordStart !== "function" || typeof ledger.recordCompletion !== "function")) {
     throw new TypeError("ledger must expose recordStart() and recordCompletion() methods");
   }
-  if (ledger) ledger.recordStart(task.input, { authorization: "pending" });
+  const ledgerStart = ledger ? ledger.recordStart(task.input, { authorization: "pending" }) : null;
   let stages = [];
   const parseStartedAt = new Date();
   const parseFinishedAt = new Date();
@@ -25,7 +25,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt);
 
   const authorization = authorizeExecution(plan, tool);
-  if (ledger) ledger.entries[ledger.entries.length - 1].metadata.authorization = authorization;
+  if (ledgerStart) ledgerStart.metadata.authorization = authorization;
   const executeStartedAt = new Date();
   const result = authorization.allowed
     ? executeTask(task.input, tool, retryOptions)
