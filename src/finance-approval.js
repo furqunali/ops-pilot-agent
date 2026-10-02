@@ -6,7 +6,7 @@ const STATUSES = Object.freeze({
   REJECTED: "rejected",
 });
 
-function createApprovalRequest(payment, policyDecision) {
+function createApprovalRequest(payment, policyDecision, requester = null) {
   if (!payment || typeof payment !== "object") throw new TypeError("payment must be an object");
   if (!policyDecision || typeof policyDecision !== "object") throw new TypeError("policyDecision must be an object");
   if (policyDecision.decision !== "requires_approval") {
@@ -16,6 +16,7 @@ function createApprovalRequest(payment, policyDecision) {
     status: STATUSES.PENDING,
     payment: { ...payment },
     policy: { ...policyDecision },
+    requester: requester ? requester.trim() : null,
   });
 }
 
@@ -25,6 +26,7 @@ function resolveApproval(request, decision, reviewer) {
     throw new TypeError("decision must be approved or rejected");
   }
   if (typeof reviewer !== "string" || !reviewer.trim()) throw new TypeError("reviewer must be a non-empty string");
+  if (request.requester && request.requester === reviewer.trim()) throw new TypeError("reviewer must differ from requester");
   return Object.freeze({
     ...request,
     status: decision,
