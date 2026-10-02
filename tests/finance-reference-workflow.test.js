@@ -84,3 +84,4 @@ test("scopes finance idempotency by tenant", () => {
   assert.equal(otherTenant.status, "prepared");
   assert.equal(ledger.findByType("completion").length, 2);
 });
+\n\ntest("finance workflow enforces requester and reviewer separation", () => {\n  const ledger = new ExecutionLedger();\n  const input = { payment: { currency: "USD", amount: 1500, vendorId: "vendor-ok" }, policy: { approvalThreshold: 1000 }, knowledge: knowledge(), ledger, requesterId: "requester-1", runId: "sod-1" };\n  assert.throws(() => runFinanceWorkflow({ ...input, approval: { decision: "approved", reviewer: "requester-1" } }), /reviewer must differ from requester/);\n  const approved = runFinanceWorkflow({ ...input, approval: { decision: "approved", reviewer: "reviewer-1" } });\n  assert.equal(approved.status, "prepared");\n});\n
