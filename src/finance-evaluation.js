@@ -2,6 +2,7 @@
 
 const { DECISIONS, evaluatePaymentPolicy } = require("./finance-policy");
 const { attachPolicyEvidence } = require("./finance-policy-evidence");
+const { buildEvaluationDashboard } = require("./finance-evaluation-dashboard");
 
 const DEFAULT_CASES = Object.freeze([
   {
@@ -44,11 +45,9 @@ function evaluateFinanceCase(testCase, knowledge, evaluator = null) {
   const decision = evaluatePaymentPolicy(testCase.payment, testCase.policy);
   const evidencedDecision = attachPolicyEvidence(decision, knowledge, testCase.query);
   const evidenceIds = evidencedDecision.evidence.map(item => item.id);
-  const expectedEvidence = testCase.expectedEvidence;
   const policyPass = decision.decision === testCase.expectedDecision;
-  const evidencePass = expectedEvidence.every(id => evidenceIds.includes(id));
+  const evidencePass = testCase.expectedEvidence.every(id => evidenceIds.includes(id));
   const evaluatorPass = evaluator ? evaluator(evidencedDecision, testCase) === true : true;
-
   return Object.freeze({
     id: testCase.id,
     passed: policyPass && evidencePass && evaluatorPass,
@@ -74,4 +73,12 @@ function evaluateFinanceSuite(testCases, knowledge, evaluator = null) {
   });
 }
 
-module.exports = { DEFAULT_CASES, validateCase, evaluateFinanceCase, evaluateFinanceSuite };
+function evaluateFinanceSuiteDashboard(testCases, knowledge, evaluator = null, options = {}) {
+  const suite = evaluateFinanceSuite(testCases, knowledge, evaluator);
+  return Object.freeze({
+    suite,
+    dashboard: buildEvaluationDashboard(suite, options),
+  });
+}
+
+module.exports = { DEFAULT_CASES, validateCase, evaluateFinanceCase, evaluateFinanceSuite, evaluateFinanceSuiteDashboard };
