@@ -33,3 +33,4 @@ test("evaluation dashboard rejects malformed suites and timestamps", () => {
   assert.throws(() => buildEvaluationDashboard({ results: [] }, { generatedAt: "now" }), /generatedAt must be a valid Date/);
   assert.throws(() => dashboardToJson(null), /dashboard must be an object/);
 });
+
