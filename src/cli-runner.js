@@ -6,6 +6,8 @@ const { ExecutionLedger } = require("./execution-ledger");
 const { inspectLedgerRuns } = require("./execution-inspection");
 const fs = require("node:fs");
 const { randomUUID } = require("node:crypto");
+const { DEFAULT_CASES, evaluateFinanceSuiteDashboard } = require("./finance-evaluation");
+const { createPolicyKnowledge } = require("./finance-policy-knowledge");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -20,6 +22,7 @@ const USAGE = [
   "  --list-tools    List the registered tools and exit",
   "  --ledger-file <path>  Persist or inspect execution ledger JSON",
   "  --inspect [run-id]    Inspect recent runs or one run from the ledger",
+  "  --finance-evaluate    Run the deterministic Finance evaluation suite",
   "  -h, --help      Show this help and exit",
   "",
   "Examples:",
@@ -90,6 +93,7 @@ function parseArgs(argv) {
     ledgerFile: null,
     inspect: false,
     inspectRunId: null,
+    financeEvaluate: false,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -115,6 +119,9 @@ function parseArgs(argv) {
         i += 1;
         break;
       }
+      case "--finance-evaluate":
+        parsed.financeEvaluate = true;
+        break;
       case "--inspect": {
         parsed.inspect = true;
         const value = argv[i + 1];
@@ -202,6 +209,24 @@ function runCli(argv, options = {}) {
       out(`error: ${error.message}`);
       return { code: 2, report: null };
     }
+  }
+
+  if (args.financeEvaluate) {
+    const knowledge = createPolicyKnowledge([
+      { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
+      { id: "vendor-blocklist", title: "Vendor blocklist", text: "Blocked vendors cannot receive payments." },
+    ]);
+    const evaluation = evaluateFinanceSuiteDashboard(DEFAULT_CASES, knowledge, null, { generatedAt: new Date() });
+    out(args.json ? JSON.stringify(evaluation, null, 2) : [
+      "Finance evaluation",
+      `  Cases:    ${evaluation.dashboard.total}`,
+      `  Passed:   ${evaluation.dashboard.passed}`,
+      `  PassRate: ${evaluation.dashboard.passRate}`,
+      `  Policy:   ${evaluation.dashboard.dimensions.policy.passRate}`,
+      `  Evidence: ${evaluation.dashboard.dimensions.evidence.passRate}`,
+      `  Evaluator: ${evaluation.dashboard.dimensions.evaluator.passRate}`,
+    ].join("\\n"));
+    return { code: evaluation.dashboard.passRate === 1 ? 0 : 1, report: evaluation };
   }
 
   if (args.listTools) {
