@@ -147,7 +147,7 @@ This is an early-stage build. Honest next steps:
 
 - [x] Implement the core task loop (parse → plan → authorize → execute → verify → report) in `src/`.
 - [x] Add a protocol-facing MCP finance tool layer; production connectors remain future work.
-- [ ] Add production connector configuration and secret management.
+- [x] Add production connector configuration and secret-safe HTTP connector primitives.\n- [ ] Connect approved tool definitions to real external services with service-specific authentication, retries, and integration tests.
 - [x] Add automated tests around the planning, execution, verification, finance policy, audit, and evaluation stages.
 - [x] Turn the finance reference workflow into a tested runnable scenario.
 
