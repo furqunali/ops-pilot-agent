@@ -74,3 +74,13 @@ test("finance workflow is idempotent for a successful operation id", () => {
   assert.equal(ledger.findByType("completion").length, 1);
   assert.equal(ledger.findByType("finance_audit").at(-1).event.type, "finance.execution_replayed");
 });
+
+
+test("scopes finance idempotency by tenant", () => {
+  const ledger = new ExecutionLedger();
+  const input = { payment: { currency: "USD", amount: 250, vendorId: "vendor-ok" }, policy: { approvalThreshold: 1000 }, knowledge: knowledge(), ledger, operationId: "payment-op-tenant", tenantId: "tenant-a", runId: "tenant-a-run" };
+  assert.equal(runFinanceWorkflow(input).status, "prepared");
+  const otherTenant = runFinanceWorkflow({ ...input, tenantId: "tenant-b", runId: "tenant-b-run" });
+  assert.equal(otherTenant.status, "prepared");
+  assert.equal(ledger.findByType("completion").length, 2);
+});
