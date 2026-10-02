@@ -70,14 +70,17 @@ The behavioural contract lives in [`agent-instructions.md`](agent-instructions.m
 
 ## 🚀 Setup / Installation
 
-> The runtime is still under construction; these steps set up the current scaffold.
+> The runtime and CLI are executable today. The repository is intentionally dependency-light and uses Node's built-in test runner.
 
 ```bash
 git clone https://github.com/furqunali/ops-pilot-agent.git
 cd ops-pilot-agent
 
 # Node.js scaffold
-node src/dummy.js
+node --test
+
+# Optional CLI entry point
+node bin/opspilot.js "compile the weekly operations report" --json
 ```
 
 Start by reading [`agent-instructions.md`](agent-instructions.md) (the operating spec) and [`examples.md`](examples.md) (the task patterns) to understand the intended behaviour.
@@ -103,6 +106,16 @@ opspilot --inspect --ledger-file ./ops-ledger.json
 ```
 
 The ledger file is append-preserving: subsequent CLI runs reload prior records, execute with a fresh correlated run ID, and persist the updated history.
+
+### Agentic Finance reference workflow
+
+The finance track demonstrates the runtime architecture on a deterministic, simulation-only payment workflow:
+
+request → policy knowledge → deterministic policy → evidence → human approval → simulated preparation → finance audit → runtime ledger → verification/evaluation
+
+The implementation is intentionally not connected to real-money execution. Finance tools expose invoice/vendor lookup, payment validation, and simulation-only payment preparation. Policy decisions can require approval or block a vendor, and policy evidence is attached to the decision before audit events are recorded.
+
+The MCP adapter exposes the finance tools through JSON-RPC with protocol metadata, structured tool results, and tool errors. The evaluation layer produces case-level results and a deterministic dashboard projection covering overall pass rate plus policy, evidence, and evaluator dimensions.
 
 ### Runtime example
 
@@ -132,11 +145,11 @@ console.log(ledger.summarize());
 
 This is an early-stage build. Honest next steps:
 
-- [ ] Implement the core task loop (parse → plan → execute → verify → report) in `src/`.
-- [ ] Add a pluggable tool/connector interface for real integrations (inbox, trackers, data stores).
-- [ ] Wire environment-variable-based configuration for credentials.
-- [ ] Add automated tests around the planning and verification stages.
-- [ ] Turn the documented examples into runnable end-to-end scenarios.
+- [x] Implement the core task loop (parse → plan → authorize → execute → verify → report) in `src/`.
+- [x] Add a protocol-facing MCP finance tool layer; production connectors remain future work.
+- [ ] Add production connector configuration and secret management.
+- [x] Add automated tests around the planning, execution, verification, finance policy, audit, and evaluation stages.
+- [x] Turn the finance reference workflow into a tested runnable scenario.
 
 ## Related
 
