@@ -55,3 +55,11 @@ test("rejects duplicate ledger ids on import", () => {
     { id: 1, timestamp: new Date().toISOString(), type: "completion" }
   ]), /ids must be unique/);
 });
+
+
+test("preserves an explicit operation id in ledger records", () => {
+  const ledger = new ExecutionLedger();
+  runTaskPipeline("sync invoices", input => ({ synced: input }), { ledger, operationId: "invoice-op-1" });
+  assert.equal(ledger.findByType("start")[0].metadata.operationId, "invoice-op-1");
+  assert.equal(ledger.findByType("completion")[0].metadata.operationId, "invoice-op-1");
+});

@@ -4,6 +4,7 @@ const EVENT_TYPES = Object.freeze({
   POLICY_EVALUATED: "finance.policy_evaluated",
   APPROVAL_REQUESTED: "finance.approval_requested",
   APPROVAL_RESOLVED: "finance.approval_resolved",
+  EXECUTION_REPLAYED: "finance.execution_replayed",
 });
 
 function createFinanceAuditEvent(type, payload, runId = null) {

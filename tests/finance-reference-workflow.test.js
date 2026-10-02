@@ -61,3 +61,16 @@ test("finance workflow blocks blocked vendors before preparation", () => {
   assert.equal(result.payment, null);
   assert.equal(ledger.findByType("finance_audit").length, 1);
 });
+
+
+test("finance workflow is idempotent for a successful operation id", () => {
+  const ledger = new ExecutionLedger();
+  const input = { payment: { currency: "USD", amount: 250, vendorId: "vendor-ok" }, policy: { approvalThreshold: 1000 }, knowledge: knowledge(), ledger, operationId: "payment-op-1", runId: "finance-run-1" };
+  const first = runFinanceWorkflow(input);
+  const second = runFinanceWorkflow({ ...input, runId: "finance-run-2" });
+  assert.equal(first.status, "prepared");
+  assert.equal(second.status, "already_prepared");
+  assert.equal(second.priorRunId, "finance-run-1");
+  assert.equal(ledger.findByType("completion").length, 1);
+  assert.equal(ledger.findByType("finance_audit").at(-1).event.type, "finance.execution_replayed");
+});
