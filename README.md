@@ -117,6 +117,27 @@ The implementation is intentionally not connected to real-money execution. Finan
 
 The MCP adapter exposes the finance tools through JSON-RPC with protocol metadata, structured tool results, and tool errors. A dependency-free Node HTTP adapter provides the transport boundary with request validation and body-size limits. The Finance tool layer can delegate invoice/vendor reads to an injected external provider with timeout and retryable-error classification. The evaluation layer produces case-level results and a deterministic dashboard projection covering overall pass rate plus policy, evidence, and evaluator dimensions.
 
+
+### External provider boundary
+
+The Finance tool layer supports deterministic in-memory fixtures and an injected provider. The provider boundary is transport-agnostic; the built-in HTTP adapter adds timeout, retryable-error classification, and URL-safe invoice/vendor lookups.
+
+```js
+const { createHttpFinanceProvider } = require("./src/finance-external-provider");
+const { createFinanceTools } = require("./src/finance-mcp-tools");
+
+const provider = createHttpFinanceProvider({
+  baseUrl: process.env.FINANCE_API_BASE_URL,
+  headers: { authorization: `Bearer ${process.env.FINANCE_API_TOKEN}` },
+  timeoutMs: 5000,
+  maxAttempts: 2,
+});
+
+const tools = createFinanceTools({ provider });
+```
+
+This boundary is suitable for sandbox/reference integrations. Production deployment still requires service-specific authentication, authorization, data contracts, integration tests, and operational controls. Real-money payment execution remains intentionally out of scope.
+
 ### Runtime example
 
 ```js
