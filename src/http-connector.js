@@ -35,6 +35,7 @@ function createHttpConnector(definition, env = process.env, options = {}) {
             error.status = response.status;
             error.body = body;
             error.retryable = response.status >= 500 || response.status === 429;
+            error.context = { status: response.status, body, retryable: error.retryable };
             throw error;
           }
           return Object.freeze({ status: response.status, body });
@@ -50,7 +51,7 @@ function createHttpConnector(definition, env = process.env, options = {}) {
           clearTimeout(timer);
         }
       }, retryOptions);
-      if (execution.error) throw Object.assign(new Error(execution.error.message), execution.error);
+      if (execution.error) throw Object.assign(new Error(execution.error.message), execution.error, execution.error.context || {});
       return execution.value;
     },
   });
