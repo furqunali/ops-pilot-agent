@@ -25,3 +25,4 @@ test("rejects approval for non-pending requests", () => {
   const resolved = resolveApproval(request, STATUSES.REJECTED, "operator-1");
   assert.throws(() => resolveApproval(resolved, STATUSES.APPROVED, "operator-2"), TypeError);
 });
+\n\ntest("requires requester and reviewer separation when requester is supplied", () => {\n  const request = createApprovalRequest(payment(), decision(), "requester-1");\n  assert.equal(request.requester, "requester-1");\n  assert.throws(() => resolveApproval(request, STATUSES.APPROVED, "requester-1"), /reviewer must differ from requester/);\n  assert.equal(resolveApproval(request, STATUSES.APPROVED, "reviewer-1").status, STATUSES.APPROVED);\n});\n
