@@ -16,6 +16,7 @@ test("evaluation dashboard aggregates policy, evidence, evaluator, and overall r
   assert.equal(dashboard.passed, 1);
   assert.equal(dashboard.passRate, 0.5);
   assert.equal(dashboard.dimensions.policy.passRate, 1);
+  assert.equal(dashboard.dimensions.evaluator.passRate, 1);
   assert.equal(dashboard.dimensions.evidence.passRate, 0.5);
   assert.deepEqual(dashboard.failures.map(item => item.id), ["b"]);
   assert.equal(dashboard.generatedAt, "2026-01-01T00:00:00.000Z");
