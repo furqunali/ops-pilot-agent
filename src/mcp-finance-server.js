@@ -86,7 +86,9 @@ function createMcpFinanceServer({ tools }) {
     }
 
     if (message.method === "tools/call") {
-      const name = message.params?.name;
+      const modernError = validateModernRequest(message);
+    if (modernError) return modernError;
+    const name = message.params?.name;
       const argumentsValue = message.params?.arguments;
       if (typeof name !== "string" || !name.trim()) {
         return jsonRpcError(message.id, -32602, "tools/call requires a tool name");
@@ -112,7 +114,23 @@ function createMcpFinanceServer({ tools }) {
     return jsonRpcError(message.id, -32601, "method not found");
   }
 
-  return Object.freeze({ handle, protocolVersion: PROTOCOL_VERSION, serverInfo: SERVER_INFO });
+  async function handleAsync(message) {
+    if (message?.method !== "tools/call") return handle(message);
+    const modernError = validateModernRequest(message);
+    if (modernError) return modernError;
+    const name = message.params?.name;
+    const argumentsValue = message.params?.arguments;
+    if (typeof name !== "string" || !name.trim()) return jsonRpcError(message.id, -32602, "tools/call requires a tool name");
+    if (typeof tools[name] !== "function") return jsonRpcError(message.id, -32602, "unknown tool");
+    try {
+      const value = await tools[name](argumentsValue);
+      return jsonRpcResult(message.id, { content: [{ type: "text", text: JSON.stringify(value) }], structuredContent: value });
+    } catch (error) {
+      return jsonRpcResult(message.id, { isError: true, content: [{ type: "text", text: error.message || "tool execution failed" }] });
+    }
+  }
+
+  return Object.freeze({ handle, handleAsync, protocolVersion: PROTOCOL_VERSION, serverInfo: SERVER_INFO });
 }
 
 module.exports = {
