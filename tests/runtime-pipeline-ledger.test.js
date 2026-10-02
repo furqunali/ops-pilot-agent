@@ -63,3 +63,4 @@ test("preserves an explicit operation id in ledger records", () => {
   assert.equal(ledger.findByType("start")[0].metadata.operationId, "invoice-op-1");
   assert.equal(ledger.findByType("completion")[0].metadata.operationId, "invoice-op-1");
 });
+\n\ntest("preserves an explicit tenant id in ledger records", () => {\n  const ledger = new ExecutionLedger();\n  runTaskPipeline("sync invoices", input => ({ synced: input }), { ledger, tenantId: "tenant-1" });\n  assert.equal(ledger.findByType("start")[0].metadata.tenantId, "tenant-1");\n  assert.equal(ledger.findByType("completion")[0].metadata.tenantId, "tenant-1");\n});\n
