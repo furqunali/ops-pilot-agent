@@ -7,7 +7,11 @@ function createFinanceTools({ invoices = [], vendors = [], provider = null } = {
     throw new TypeError("invoices and vendors must be arrays");
   }
 
-  if (provider !== null && (!provider || typeof provider.getInvoice !== "function" || typeof provider.getVendor !== "function")) {\n    throw new TypeError("provider must expose getInvoice() and getVendor()");\n  }\n\n  return Object.freeze({
+  if (provider !== null && (!provider || typeof provider.getInvoice !== "function" || typeof provider.getVendor !== "function")) {
+    throw new TypeError("provider must expose getInvoice() and getVendor()");
+  }
+
+  return Object.freeze({
     "finance.get_invoice": invoiceId => provider ? provider.getInvoice(invoiceId) : (invoices.find(item => item.id === invoiceId) || null),
     "finance.get_vendor": vendorId => provider ? provider.getVendor(vendorId) : (vendors.find(item => item.id === vendorId) || null),
     "finance.check_payment": payment => {
