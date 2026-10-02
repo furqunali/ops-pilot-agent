@@ -44,8 +44,8 @@ test("finance workflow pauses for approval and resumes after approval", () => {
   const approved = runFinanceWorkflow({ ...input, approval: { decision: "approved", reviewer: "reviewer-1" } });
   assert.equal(approved.status, "prepared");
   assert.equal(approved.approval, null);
-  assert.equal(ledger.findByType("finance_audit").length, 3);
-  assert.equal(ledger.findByType("finance_audit")[2].event.type, "finance.approval_resolved");
+  assert.equal(ledger.findByType("finance_audit").length, 5);
+  assert.equal(ledger.findByType("finance_audit").at(-1).event.type, "finance.approval_resolved");
 });
 
 test("finance workflow blocks blocked vendors before preparation", () => {
