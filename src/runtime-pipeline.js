@@ -17,6 +17,8 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
   const executionOptions = { ...retryOptions, runId };
   const operationId = typeof retryOptions?.operationId === "string" && retryOptions.operationId.trim() ? retryOptions.operationId.trim() : null;
+  const executionAdapter = retryOptions?.executionAdapter || null;
+  if (executionAdapter !== null && typeof executionAdapter !== "function") throw new TypeError("executionAdapter must be a function or null");
   const tenantId = typeof retryOptions?.tenantId === "string" && retryOptions.tenantId.trim() ? retryOptions.tenantId.trim() : null;
   const ledger = retryOptions?.ledger || null;
   if (ledger !== null && (!ledger || typeof ledger.recordStart !== "function" || typeof ledger.recordCompletion !== "function")) {
@@ -33,11 +35,11 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const planFinishedAt = new Date();
   stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt, { runId });
 
-  const authorization = authorizeExecution(plan, tool);
+  const authorization = authorizeExecution(plan, tool || executionAdapter);
   if (ledgerStart) ledgerStart.metadata.authorization = authorization;
   const executeStartedAt = new Date();
   const result = authorization.allowed
-    ? executeTask(task.input, tool, executionOptions)
+    ? (executionAdapter ? executionAdapter({ task: task.input, runId, operationId, tenantId, ledger, tool, options: executionOptions }) : executeTask(task.input, tool, executionOptions))
     : { status: "skipped", task: task.input, output: null, reason: authorization.reason };
   const executeFinishedAt = new Date();
   stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization, runId });
