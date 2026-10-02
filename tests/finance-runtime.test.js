@@ -47,3 +47,25 @@ test("finance agent task preserves approval pause while producing a runtime run"
   assert.equal(run.result.status, "skipped");
   assert.equal(run.verification.valid, true);
 });
+
+
+test("finance agent task propagates operation, tenant, and requester correlation", () => {
+  const ledger = new ExecutionLedger();
+  const run = runFinanceAgentTask({
+    task: "prepare vendor payment",
+    payment: { currency: "USD", amount: 250, vendorId: "vendor-ok" },
+    policy: { approvalThreshold: 1000 },
+    knowledge,
+    ledger,
+    runId: "finance-correlation-1",
+    operationId: "operation-42",
+    tenantId: "tenant-a",
+    requesterId: "requester-7",
+  });
+  const completion = ledger.findByType("completion").at(-1);
+  assert.equal(run.operationId, "operation-42");
+  assert.equal(run.tenantId, "tenant-a");
+  assert.equal(run.requesterId, "requester-7");
+  assert.equal(completion.metadata.operationId, "operation-42");
+  assert.equal(completion.metadata.tenantId, "tenant-a");
+});
