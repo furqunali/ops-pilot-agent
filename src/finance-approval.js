@@ -15,7 +15,8 @@ function createApprovalRequest(payment, policyDecision, requester = null) {
   return Object.freeze({
     status: STATUSES.PENDING,
     payment: { ...payment },
-    policy: { ...policyDecision },\n    requester: requester ? requester.trim() : null,
+    policy: { ...policyDecision },
+    requester: requester ? requester.trim() : null,
   });
 }
 
@@ -24,7 +25,8 @@ function resolveApproval(request, decision, reviewer) {
   if (decision !== STATUSES.APPROVED && decision !== STATUSES.REJECTED) {
     throw new TypeError("decision must be approved or rejected");
   }
-  if (typeof reviewer !== "string" || !reviewer.trim()) throw new TypeError("reviewer must be a non-empty string");\n  if (request.requester && request.requester === reviewer.trim()) throw new TypeError("reviewer must differ from requester");
+  if (typeof reviewer !== "string" || !reviewer.trim()) throw new TypeError("reviewer must be a non-empty string");
+  if (request.requester && request.requester === reviewer.trim()) throw new TypeError("reviewer must differ from requester");
   return Object.freeze({
     ...request,
     status: decision,
