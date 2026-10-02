@@ -8,12 +8,12 @@ const { createFinanceTools, invokeFinanceTool } = require("./finance-mcp-tools")
 const { runTaskPipeline } = require("./runtime-pipeline");
 const { attachPolicyEvidence } = require("./finance-policy-evidence");
 
-function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, operationId = null, tenantId = null, approval = null } = {}) {
+function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, operationId = null, tenantId = null, requesterId = null, approval = null } = {}) {
   if (!ledger || typeof ledger.append !== "function") throw new TypeError("ledger must expose append()");
   if (!knowledge || typeof knowledge.search !== "function") throw new TypeError("knowledge must expose search()");
   const toolset = tools || createFinanceTools();
   if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");
-  if (tenantId !== null && (typeof tenantId !== "string" || !tenantId.trim())) throw new TypeError("tenantId must be null or a non-empty string");
+  if (tenantId !== null && (typeof tenantId !== "string" || !tenantId.trim())) throw new TypeError("tenantId must be null or a non-empty string");\n  if (requesterId !== null && (typeof requesterId !== "string" || !requesterId.trim())) throw new TypeError("requesterId must be null or a non-empty string");
   const priorCompletion = operationId ? ledger.findByType("completion").find(entry => entry.metadata?.operationId === operationId && entry.metadata?.tenantId === tenantId && entry.status === "success") : null;
   if (priorCompletion) {
     recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.EXECUTION_REPLAYED, { operationId, tenantId, priorRunId: priorCompletion.metadata.runId, result: priorCompletion.result }, runId));
@@ -28,7 +28,7 @@ function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId =
   }
 
   if (decision.decision === DECISIONS.REQUIRES_APPROVAL) {
-    let request = createApprovalRequest(payment, evidencedDecision);
+    let request = createApprovalRequest(payment, evidencedDecision, requesterId);
     recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.APPROVAL_REQUESTED, { payment: { ...payment }, request: { ...request } }, runId));
     if (!approval) return Object.freeze({ status: STATUSES.PENDING, decision: evidencedDecision, payment: null, approval: request });
     request = resolveApproval(request, approval.decision, approval.reviewer);
