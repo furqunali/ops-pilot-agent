@@ -8,10 +8,10 @@ const { createFinanceTools, invokeFinanceTool } = require("./finance-mcp-tools")
 const { runTaskPipeline } = require("./runtime-pipeline");
 const { attachPolicyEvidence } = require("./finance-policy-evidence");
 
-function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, approval = null } = {}) {
+function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, operationId = null, approval = null } = {}) {
   if (!ledger || typeof ledger.append !== "function") throw new TypeError("ledger must expose append()");
   if (!knowledge || typeof knowledge.search !== "function") throw new TypeError("knowledge must expose search()");
-  const toolset = tools || createFinanceTools();
+  const toolset = tools || createFinanceTools();\n  if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");\n  const priorCompletion = operationId ? ledger.findByType("completion").find(entry => entry.metadata?.operationId === operationId && entry.status === "success") : null;\n  if (priorCompletion) {\n    recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.EXECUTION_REPLAYED, { operationId, priorRunId: priorCompletion.metadata.runId, result: priorCompletion.result }, runId));\n    return Object.freeze({ status: "already_prepared", decision: null, payment: priorCompletion.result?.output ?? null, approval: null, runtime: null, priorRunId: priorCompletion.metadata.runId });\n  }
   const decision = evaluatePaymentPolicy(payment, policy);
   const evidencedDecision = attachPolicyEvidence(decision, knowledge, "approval threshold");
   recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.POLICY_EVALUATED, { payment: { ...payment }, decision: evidencedDecision }, runId));
@@ -29,7 +29,7 @@ function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId =
     if (request.status === STATUSES.REJECTED) return Object.freeze({ status: "rejected", decision: evidencedDecision, payment: null, approval: request });
   }
 
-  const runtime = runTaskPipeline(`prepare payment for ${payment.vendorId}`, () => invokeFinanceTool(toolset, "finance.prepare_payment", payment), { runId, ledger });
+  const runtime = runTaskPipeline(`prepare payment for ${payment.vendorId}`, () => invokeFinanceTool(toolset, "finance.prepare_payment", payment), { runId, operationId, ledger });
   if (runtime.result.status !== "success") return Object.freeze({ status: "failed", decision: evidencedDecision, payment: null, approval: null, runtime });
   const prepared = runtime.result.output;
   return Object.freeze({ status: "prepared", decision: evidencedDecision, payment: prepared, approval: null, runtime });
