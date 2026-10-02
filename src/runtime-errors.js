@@ -23,7 +23,7 @@ class RuntimeError extends Error {
 
 function normalizeExecutionError(error, context = {}) {
   if (error instanceof RuntimeError) return { name: error.name, code: error.code, message: error.message, context: { ...error.context, ...context } };
-  if (error instanceof Error) return { name: error.name || "Error", code: "RUNTIME_UNCLASSIFIED", message: error.message || "Unknown error", context: { ...context } };
+  if (error instanceof Error) return { name: error.name || "Error", code: error.code || "RUNTIME_UNCLASSIFIED", message: error.message || "Unknown error", context: { ...(error.context && typeof error.context === "object" ? error.context : {}), ...context } };
   return { name: "UnknownError", code: "RUNTIME_UNCLASSIFIED", message: String(error), context: { ...context } };
 }
 
