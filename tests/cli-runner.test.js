@@ -137,3 +137,13 @@ test("runCli persists and reloads the execution ledger", () => {
   const secondRunId = secondRecords.filter(entry => entry.type === "start").at(-1).metadata.runId;
   assert.notEqual(firstRunId, secondRunId);
 });
+
+
+test("finance runtime evaluation CLI runs the complete agent path", () => {
+  const lines = [];
+  const result = runCli(["--finance-runtime-evaluate"], { out: line => lines.push(line) });
+  assert.equal(result.code, 0);
+  assert.equal(result.report.total, 1);
+  assert.equal(result.report.passed, 1);
+  assert.match(lines.join("\n"), /Finance runtime evaluation/);
+});
