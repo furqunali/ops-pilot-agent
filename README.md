@@ -2,7 +2,7 @@
 
 *An operations copilot that turns plain-language instructions into planned, verified, multi-step work.*
 
-> 🚧 **Status: early-stage / work-in-progress.** This repository currently defines the agent's operating specification, behavioural contract, and project scaffold. The execution runtime is being built out — see the [Roadmap](#-roadmap). Nothing here is fabricated: what is documented below reflects what is in the repo today.
+> **Status: active reference implementation.** The repository contains a tested runtime, CLI, Finance reference workflow, MCP protocol adapter, HTTP boundary, evaluation framework, and external-provider integration primitives. Real-money execution remains intentionally out of scope.
 
 ---
 
@@ -115,7 +115,7 @@ request → policy knowledge → deterministic policy → evidence → human app
 
 The implementation is intentionally not connected to real-money execution. Finance tools expose invoice/vendor lookup, payment validation, and simulation-only payment preparation. Policy decisions can require approval or block a vendor, and policy evidence is attached to the decision before audit events are recorded.
 
-The MCP adapter exposes the finance tools through JSON-RPC with protocol metadata, structured tool results, and tool errors. The evaluation layer produces case-level results and a deterministic dashboard projection covering overall pass rate plus policy, evidence, and evaluator dimensions.
+The MCP adapter exposes the finance tools through JSON-RPC with protocol metadata, structured tool results, and tool errors. A dependency-free Node HTTP adapter provides the transport boundary with request validation and body-size limits. The Finance tool layer can delegate invoice/vendor reads to an injected external provider with timeout and retryable-error classification. The evaluation layer produces case-level results and a deterministic dashboard projection covering overall pass rate plus policy, evidence, and evaluator dimensions.
 
 ### Runtime example
 
