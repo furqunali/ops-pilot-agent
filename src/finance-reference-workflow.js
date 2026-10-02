@@ -5,6 +5,7 @@ const { createApprovalRequest, resolveApproval, STATUSES } = require("./finance-
 const { createFinanceAuditEvent, EVENT_TYPES } = require("./finance-audit");
 const { recordFinanceAudit } = require("./finance-ledger");
 const { createFinanceTools, invokeFinanceTool } = require("./finance-mcp-tools");
+const { runTaskPipeline } = require("./runtime-pipeline");
 const { attachPolicyEvidence } = require("./finance-policy-evidence");
 
 function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, approval = null } = {}) {
@@ -28,8 +29,10 @@ function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId =
     if (request.status === STATUSES.REJECTED) return Object.freeze({ status: "rejected", decision: evidencedDecision, payment: null, approval: request });
   }
 
-  const prepared = invokeFinanceTool(toolset, "finance.prepare_payment", payment);
-  return Object.freeze({ status: "prepared", decision: evidencedDecision, payment: prepared, approval: null });
+  const runtime = runTaskPipeline(`prepare payment for ${payment.vendorId}`, () => invokeFinanceTool(toolset, "finance.prepare_payment", payment), { runId, ledger });
+  if (runtime.result.status !== "success") return Object.freeze({ status: "failed", decision: evidencedDecision, payment: null, approval: null, runtime });
+  const prepared = runtime.result.output;
+  return Object.freeze({ status: "prepared", decision: evidencedDecision, payment: prepared, approval: null, runtime });
 }
 
 module.exports = { runFinanceWorkflow };
