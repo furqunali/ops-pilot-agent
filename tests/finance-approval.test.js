@@ -28,7 +28,7 @@ test("rejects approval for non-pending requests", () => {
 
 
 test("requires requester and reviewer separation when requester is supplied", () => {
-  const request = createApprovalRequest(payment(), decision(), "requester-1");
+  const request = createApprovalRequest(\n    { amount: 1500, currency: "USD", vendorId: "vendor-1" },\n    { decision: "requires_approval", policy: "approval_threshold" },\n    "requester-1",\n  );
   assert.equal(request.requester, "requester-1");
   assert.throws(() => resolveApproval(request, STATUSES.APPROVED, "requester-1"), /reviewer must differ from requester/);
   assert.equal(resolveApproval(request, STATUSES.APPROVED, "reviewer-1").status, STATUSES.APPROVED);
