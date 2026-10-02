@@ -15,12 +15,12 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   }
   const task = new Task(input);
   const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
-  const executionOptions = { ...retryOptions, runId };
+  const executionOptions = { ...retryOptions, runId };\n  const operationId = typeof retryOptions?.operationId === "string" && retryOptions.operationId.trim() ? retryOptions.operationId.trim() : null;
   const ledger = retryOptions?.ledger || null;
   if (ledger !== null && (!ledger || typeof ledger.recordStart !== "function" || typeof ledger.recordCompletion !== "function")) {
     throw new TypeError("ledger must expose recordStart() and recordCompletion() methods");
   }
-  const ledgerStart = ledger ? ledger.recordStart(task.input, { runId, authorization: "pending" }) : null;
+  const ledgerStart = ledger ? ledger.recordStart(task.input, { runId, operationId, authorization: "pending" }) : null;
   let stages = [];
   const parseStartedAt = new Date();
   const parseFinishedAt = new Date();
@@ -49,7 +49,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const audit = buildPipelineAudit(task, result, verification);
   const observability = { stages, summary: summarizeStages(stages) };
   const report = buildRuntimeReport({ ...run, audit, observability });
-  if (ledger) ledger.recordCompletion(task.input, result, { runId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs });
+  if (ledger) ledger.recordCompletion(task.input, result, { runId, operationId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs });
 
   return { ...run, report: { ...report, runId }, audit, observability };
 }
