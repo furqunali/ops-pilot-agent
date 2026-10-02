@@ -2,14 +2,14 @@
 
 const { validatePayment } = require("./finance-policy");
 
-function createFinanceTools({ invoices = [], vendors = [] } = {}) {
+function createFinanceTools({ invoices = [], vendors = [], provider = null } = {}) {
   if (!Array.isArray(invoices) || !Array.isArray(vendors)) {
     throw new TypeError("invoices and vendors must be arrays");
   }
 
-  return Object.freeze({
-    "finance.get_invoice": invoiceId => invoices.find(item => item.id === invoiceId) || null,
-    "finance.get_vendor": vendorId => vendors.find(item => item.id === vendorId) || null,
+  if (provider !== null && (!provider || typeof provider.getInvoice !== "function" || typeof provider.getVendor !== "function")) {\n    throw new TypeError("provider must expose getInvoice() and getVendor()");\n  }\n\n  return Object.freeze({
+    "finance.get_invoice": invoiceId => provider ? provider.getInvoice(invoiceId) : (invoices.find(item => item.id === invoiceId) || null),
+    "finance.get_vendor": vendorId => provider ? provider.getVendor(vendorId) : (vendors.find(item => item.id === vendorId) || null),
     "finance.check_payment": payment => {
       validatePayment(payment);
       return { ...payment, checked: true };
