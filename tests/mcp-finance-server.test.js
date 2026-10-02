@@ -79,3 +79,28 @@ test("returns JSON-RPC errors for unknown methods and tools", () => {
     params: { name: "finance.unknown", arguments: {}, _meta: meta },
   }).error.code, -32602);
 });
+\n\ntest("supports async service-backed finance tools", async () => {
+  const asyncServer = createMcpFinanceServer({
+    tools: {
+      "finance.async_lookup": async value => ({ id: value, source: "service" }),
+    },
+  });
+  const response = await asyncServer.handleAsync({
+    jsonrpc: "2.0",
+    id: 9,
+    method: "tools/call",
+    params: { name: "finance.async_lookup", arguments: "vendor-1", _meta: meta },
+  });
+  assert.deepEqual(response.result.structuredContent, { id: "vendor-1", source: "service" });
+});
+
+test("async MCP tools still require modern protocol metadata", async () => {
+  const asyncServer = createMcpFinanceServer({ tools: { "finance.async_lookup": async () => ({ ok: true }) } });
+  const response = await asyncServer.handleAsync({
+    jsonrpc: "2.0",
+    id: 10,
+    method: "tools/call",
+    params: { name: "finance.async_lookup", arguments: "vendor-1" },
+  });
+  assert.equal(response.error.code, -32602);
+});
