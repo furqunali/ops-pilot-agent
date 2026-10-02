@@ -38,7 +38,7 @@ function createHttpFinanceProvider({ baseUrl, fetchImpl = globalThis.fetch, head
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl must be a function");
 
   const request = async (path, { signal }) => {
-    const response = await fetchImpl(new URL(path.replace(/^\\/+/, ""), baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`), { method: "GET", headers: { accept: "application/json", ...headers }, signal });
+    const response = await fetchImpl(new URL(path.startsWith("/") ? path.slice(1) : path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`), { method: "GET", headers: { accept: "application/json", ...headers }, signal });
     if (!response || typeof response.ok !== "boolean") throw new TypeError("fetchImpl must return a Response-like value");
     if (!response.ok) {
       const error = new Error(`provider request failed with status ${response.status}`);
