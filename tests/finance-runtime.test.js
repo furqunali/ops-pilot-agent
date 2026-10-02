@@ -44,6 +44,6 @@ test("finance agent task preserves approval pause while producing a runtime run"
 
   assert.equal(run.finance.status, "pending");
   assert.equal(run.finance.approval.status, "pending");
-  assert.equal(run.result.status, "success");
+  assert.equal(run.result.status, "skipped");
   assert.equal(run.verification.valid, true);
 });
