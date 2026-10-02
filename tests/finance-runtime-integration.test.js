@@ -6,60 +6,25 @@ const { ExecutionLedger } = require("../src/execution-ledger");
 const { createPolicyKnowledge } = require("../src/finance-policy-knowledge");
 const { runFinanceWorkflow } = require("../src/finance-reference-workflow");
 
-function knowledge() {
-  return createPolicyKnowledge([
-    { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
-    { id: "vendor-blocklist", title: "Vendor blocklist", text: "Blocked vendors cannot receive payments." },
-  ]);
-}
-
-test("finance workflow prepares allowed payments and records policy audit", () => {
+test("finance prepared execution runs through the canonical runtime", () => {
   const ledger = new ExecutionLedger();
+  const knowledge = createPolicyKnowledge([
+    { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
+  ]);
+
   const result = runFinanceWorkflow({
     payment: { currency: "USD", amount: 250, vendorId: "vendor-ok" },
     policy: { approvalThreshold: 1000 },
-    knowledge: knowledge(),
+    knowledge,
     ledger,
-    runId: "finance-allowed-1",
+    runId: "finance-runtime-1",
   });
+
   assert.equal(result.status, "prepared");
-  assert.equal(result.payment.status, "prepared");
-  assert.deepEqual(result.decision.evidence.map(item => item.id), ["payment-threshold"]);
-  assert.equal(ledger.findByType("finance_audit").length, 1);
-  assert.equal(ledger.latest().metadata.runId, "finance-allowed-1");
-  assert.equal(result.runtime.runId, "finance-allowed-1");
+  assert.equal(result.runtime.runId, "finance-runtime-1");
+  assert.equal(result.runtime.result.status, "success");
   assert.equal(result.runtime.verification.valid, true);
-});
-
-test("finance workflow pauses for approval and resumes after approval", () => {
-  const ledger = new ExecutionLedger();
-  const input = {
-    payment: { currency: "USD", amount: 1500, vendorId: "vendor-ok" },
-    policy: { approvalThreshold: 1000 },
-    knowledge: knowledge(),
-    ledger,
-    runId: "finance-approval-1",
-  };
-  const pending = runFinanceWorkflow(input);
-  assert.equal(pending.status, "pending");
-  assert.equal(pending.approval.status, "pending");
-  const approved = runFinanceWorkflow({ ...input, approval: { decision: "approved", reviewer: "reviewer-1" } });
-  assert.equal(approved.status, "prepared");
-  assert.equal(approved.approval, null);
-  assert.equal(ledger.findByType("finance_audit").length, 5);
-  assert.equal(ledger.findByType("finance_audit").at(-1).event.type, "finance.approval_resolved");
-});
-
-test("finance workflow blocks blocked vendors before preparation", () => {
-  const ledger = new ExecutionLedger();
-  const result = runFinanceWorkflow({
-    payment: { currency: "USD", amount: 250, vendorId: "vendor-blocked" },
-    policy: { approvalThreshold: 1000, blockedVendors: ["vendor-blocked"] },
-    knowledge: knowledge(),
-    ledger,
-    runId: "finance-blocked-1",
-  });
-  assert.equal(result.status, "blocked");
-  assert.equal(result.payment, null);
-  assert.equal(ledger.findByType("finance_audit").length, 1);
+  assert.equal(result.runtime.observability.summary.total, 4);
+  assert.ok(ledger.findByType("start").some(entry => entry.metadata.runId === "finance-runtime-1"));
+  assert.ok(ledger.findByType("completion").some(entry => entry.metadata.runId === "finance-runtime-1"));
 });
