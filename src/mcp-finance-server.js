@@ -86,7 +86,7 @@ function createMcpFinanceServer({ tools }) {
     }
 
     if (message.method === "tools/call") {
-      const name = message.params?.name;
+      const modernError = validateModernRequest(message);\n    if (modernError) return modernError;\n    const name = message.params?.name;
       const argumentsValue = message.params?.arguments;
       if (typeof name !== "string" || !name.trim()) {
         return jsonRpcError(message.id, -32602, "tools/call requires a tool name");
