@@ -41,6 +41,7 @@ function buildEvaluationDashboard(suite, { generatedAt = new Date() } = {}) {
 
 function dashboardToJson(dashboard) {
   if (!dashboard || typeof dashboard !== "object") throw new TypeError("dashboard must be an object");
+  if (typeof dashboard.passRate !== "number" || !dashboard.dimensions) throw new TypeError("dashboard must be a built evaluation dashboard");
   return JSON.stringify(dashboard, null, 2);
 }
 
