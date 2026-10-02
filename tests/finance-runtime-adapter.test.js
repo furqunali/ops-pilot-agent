@@ -27,3 +27,4 @@ test("finance adapter connects finance workflow to canonical runtime", () => {
   assert.equal(result.runtime.verification.valid, true);
   assert.ok(ledger.findByType("finance_audit").length >= 1);
 });
+
