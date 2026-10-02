@@ -27,6 +27,7 @@ test("finance agent task runs finance workflow through runtime orchestration", (
   assert.equal(run.verification.valid, true);
   assert.equal(run.observability.stages.every(stage => stage.metadata.runId === "finance-runtime-1"), true);
   assert.equal(ledger.findByType("finance_audit").length, 1);
+  assert.equal(ledger.findByType("completion").length, 1);
   assert.equal(ledger.findByType("completion").at(-1).metadata.runId, "finance-runtime-1");
 });
 
