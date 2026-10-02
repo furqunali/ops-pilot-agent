@@ -79,7 +79,9 @@ test("returns JSON-RPC errors for unknown methods and tools", () => {
     params: { name: "finance.unknown", arguments: {}, _meta: meta },
   }).error.code, -32602);
 });
-\n\ntest("supports async service-backed finance tools", async () => {
+
+
+test("supports async service-backed finance tools", async () => {
   const asyncServer = createMcpFinanceServer({
     tools: {
       "finance.async_lookup": async value => ({ id: value, source: "service" }),
