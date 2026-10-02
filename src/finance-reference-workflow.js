@@ -11,7 +11,13 @@ const { attachPolicyEvidence } = require("./finance-policy-evidence");
 function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId = null, operationId = null, approval = null } = {}) {
   if (!ledger || typeof ledger.append !== "function") throw new TypeError("ledger must expose append()");
   if (!knowledge || typeof knowledge.search !== "function") throw new TypeError("knowledge must expose search()");
-  const toolset = tools || createFinanceTools();\n  if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");\n  const priorCompletion = operationId ? ledger.findByType("completion").find(entry => entry.metadata?.operationId === operationId && entry.status === "success") : null;\n  if (priorCompletion) {\n    recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.EXECUTION_REPLAYED, { operationId, priorRunId: priorCompletion.metadata.runId, result: priorCompletion.result }, runId));\n    return Object.freeze({ status: "already_prepared", decision: null, payment: priorCompletion.result?.output ?? null, approval: null, runtime: null, priorRunId: priorCompletion.metadata.runId });\n  }
+  const toolset = tools || createFinanceTools();
+  if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");
+  const priorCompletion = operationId ? ledger.findByType("completion").find(entry => entry.metadata?.operationId === operationId && entry.status === "success") : null;
+  if (priorCompletion) {
+    recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.EXECUTION_REPLAYED, { operationId, priorRunId: priorCompletion.metadata.runId, result: priorCompletion.result }, runId));
+    return Object.freeze({ status: "already_prepared", decision: null, payment: priorCompletion.result?.output ?? null, approval: null, runtime: null, priorRunId: priorCompletion.metadata.runId });
+  }
   const decision = evaluatePaymentPolicy(payment, policy);
   const evidencedDecision = attachPolicyEvidence(decision, knowledge, "approval threshold");
   recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.POLICY_EVALUATED, { payment: { ...payment }, decision: evidencedDecision }, runId));
