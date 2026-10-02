@@ -15,7 +15,8 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   }
   const task = new Task(input);
   const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
-  const executionOptions = { ...retryOptions, runId };\n  const operationId = typeof retryOptions?.operationId === "string" && retryOptions.operationId.trim() ? retryOptions.operationId.trim() : null;
+  const executionOptions = { ...retryOptions, runId };
+  const operationId = typeof retryOptions?.operationId === "string" && retryOptions.operationId.trim() ? retryOptions.operationId.trim() : null;
   const ledger = retryOptions?.ledger || null;
   if (ledger !== null && (!ledger || typeof ledger.recordStart !== "function" || typeof ledger.recordCompletion !== "function")) {
     throw new TypeError("ledger must expose recordStart() and recordCompletion() methods");
