@@ -12,7 +12,8 @@ function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId =
   if (!ledger || typeof ledger.append !== "function") throw new TypeError("ledger must expose append()");
   if (!knowledge || typeof knowledge.search !== "function") throw new TypeError("knowledge must expose search()");
   const toolset = tools || createFinanceTools();
-  if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");\n  if (tenantId !== null && (typeof tenantId !== "string" || !tenantId.trim())) throw new TypeError("tenantId must be null or a non-empty string");
+  if (operationId !== null && (typeof operationId !== "string" || !operationId.trim())) throw new TypeError("operationId must be null or a non-empty string");
+  if (tenantId !== null && (typeof tenantId !== "string" || !tenantId.trim())) throw new TypeError("tenantId must be null or a non-empty string");
   const priorCompletion = operationId ? ledger.findByType("completion").find(entry => entry.metadata?.operationId === operationId && entry.metadata?.tenantId === tenantId && entry.status === "success") : null;
   if (priorCompletion) {
     recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.EXECUTION_REPLAYED, { operationId, tenantId, priorRunId: priorCompletion.metadata.runId, result: priorCompletion.result }, runId));
