@@ -17,7 +17,7 @@ class RuntimeCache {
 
   set(key, value, ttlMs = this.ttlMs) {
     if (!Number.isFinite(ttlMs) || ttlMs <= 0) throw new TypeError("ttlMs must be positive");
-    const normalized = String(key);
+    const normalized = this.key(key);
     if (this.entries.size >= this.maxEntries && !this.entries.has(normalized)) {
       this.evictExpired();
       if (this.entries.size >= this.maxEntries) this.entries.delete(this.entries.keys().next().value);
@@ -27,7 +27,7 @@ class RuntimeCache {
   }
 
   get(key) {
-    const normalized = String(key);
+    const normalized = this.key(key);
     const entry = this.entries.get(normalized);
     if (!entry) {
       this.misses += 1;
@@ -47,7 +47,7 @@ class RuntimeCache {
   }
 
   delete(key) {
-    return this.entries.delete(String(key));
+    return this.entries.delete(this.key(key));
   }
 
   evictExpired() {
