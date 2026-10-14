@@ -221,7 +221,19 @@ function runCli(argv, options = {}) {
     }
   }
 
-  if (args.financeWorkflowEvaluate) {\n    const evaluation = evaluateFinanceWorkflowSuite();\n    out(args.json ? JSON.stringify(evaluation, null, 2) : [\n      "Finance workflow evaluation",\n      `  Cases:    ${evaluation.total}`,\n      `  Passed:   ${evaluation.passed}`,\n      `  Failed:   ${evaluation.failed}`,\n      `  PassRate: ${evaluation.passRate}`,\n    ].join("\\n"));\n    return { code: evaluation.passRate === 1 ? 0 : 1, report: evaluation };\n  }\n\n  if (args.financeRuntimeEvaluate) {
+  if (args.financeWorkflowEvaluate) {
+    const evaluation = evaluateFinanceWorkflowSuite();
+    out(args.json ? JSON.stringify(evaluation, null, 2) : [
+      "Finance workflow evaluation",
+      `  Cases:    ${evaluation.total}`,
+      `  Passed:   ${evaluation.passed}`,
+      `  Failed:   ${evaluation.failed}`,
+      `  PassRate: ${evaluation.passRate}`,
+    ].join("\n"));
+    return { code: evaluation.passRate === 1 ? 0 : 1, report: evaluation };
+  }
+
+  if (args.financeRuntimeEvaluate) {
     const knowledge = createPolicyKnowledge([
       { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
     ]);
