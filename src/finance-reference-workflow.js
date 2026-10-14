@@ -21,7 +21,8 @@ function runFinanceWorkflow({ payment, policy, knowledge, ledger, tools, runId =
     return Object.freeze({ status: "already_prepared", decision: null, payment: priorCompletion.result?.output ?? null, approval: null, runtime: null, priorRunId: priorCompletion.metadata.runId });
   }
   const decision = evaluatePaymentPolicy(payment, policy);
-  const evidencedDecision = attachPolicyEvidence(decision, knowledge, "approval threshold");
+  const evidenceQuery = decision.policy === "vendor_blocklist" ? "blocked vendors" : "approval threshold";
+  const evidencedDecision = attachPolicyEvidence(decision, knowledge, evidenceQuery);
   recordFinanceAudit(ledger, createFinanceAuditEvent(EVENT_TYPES.POLICY_EVALUATED, { payment: { ...payment }, decision: evidencedDecision }, runId));
 
   if (decision.decision === DECISIONS.BLOCKED) {
