@@ -1,0 +1,3 @@
+Canonical repository: https://github.com/furqunali/ops-pilot-agent
+
+This file identifies the one repository this project-maintenance workflow should target. Before making changes, verify that the current checkout's Git remote points to this URL. If it does not, stop and ask rather than updating a different repository. Make changes in a feature branch, run `npm test`, open a pull request, and merge only after the exact PR head has green required CI. Do not push directly to `main`, fabricate test results, or claim a merge before GitHub confirms it.
