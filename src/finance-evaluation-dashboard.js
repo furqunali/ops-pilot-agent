@@ -59,7 +59,11 @@ function buildEvaluationDashboard(suite, { generatedAt = new Date(), runId = nul
     pipeline: PIPELINE,
     status: failures.length ? "attention_required" : "passed",
     risk,
-    total,\n    passed,\n    failed: total - passed,\n    passRate: rate(passed),\n    summary: Object.freeze({ total, passed, failed: total - passed, passRate: rate(passed) }),
+    total,
+    passed,
+    failed: total - passed,
+    passRate: rate(passed),
+    summary: Object.freeze({ total, passed, failed: total - passed, passRate: rate(passed) }),
     dimensions: Object.freeze({
       policy: Object.freeze({ passed: policyPassed, failed: total - policyPassed, passRate: rate(policyPassed) }),
       evidence: Object.freeze({ passed: evidencePassed, failed: total - evidencePassed, passRate: rate(evidencePassed) }),
