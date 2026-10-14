@@ -132,6 +132,9 @@ function parseArgs(argv) {
       case "--finance-runtime-evaluate":
         parsed.financeRuntimeEvaluate = true;
         break;
+      case "--finance-workflow-evaluate":
+        parsed.financeWorkflowEvaluate = true;
+        break;
       case "--inspect": {
         parsed.inspect = true;
         const value = argv[i + 1];
