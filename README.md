@@ -166,6 +166,28 @@ console.log(run.report);
 console.log(ledger.summarize());
 ```
 
+### OpsPilot Assurance Console
+
+The evaluation surface is intentionally designed as an engineering control plane rather than a generic scorecard. Each report carries a schema version, correlated run ID, profile, seven-stage assurance pipeline, risk classification, decision distribution, gate-level pass rates, and actionable failed-gate details.
+
+```js
+const { evaluateFinanceSuiteDashboard, DEFAULT_CASES } = require("./src/finance-evaluation");
+const { createPolicyKnowledge } = require("./src/finance-policy-knowledge");
+const { renderAssuranceConsole } = require("./src/finance-assurance-console");
+
+const knowledge = createPolicyKnowledge([
+  { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
+  { id: "vendor-blocklist", title: "Vendor blocklist", text: "Blocked vendors cannot receive payments." },
+]);
+const { dashboard } = evaluateFinanceSuiteDashboard(DEFAULT_CASES, knowledge, null, {
+  runId: "finance-ci-001",
+  profile: "finance-reference",
+});
+console.log(renderAssuranceConsole(dashboard));
+```
+
+The console labels the stages as **intake → policy gate → evidence binding → approval control → simulation → audit commit → evaluation**. A policy-gate failure raises the report risk to `critical`; other failed checks are marked `elevated`; a fully passing suite is `nominal`. Reports can also be serialized as JSON for CI artifacts and later comparison.
+
 ## 🔒 Security
 
 - **No secrets committed.** Credentials and API keys are intended to be supplied via environment variables, never checked into the repository.
