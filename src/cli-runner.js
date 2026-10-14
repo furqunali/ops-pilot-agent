@@ -10,6 +10,7 @@ const { DEFAULT_CASES, evaluateFinanceSuiteDashboard } = require("./finance-eval
 const { createPolicyKnowledge } = require("./finance-policy-knowledge");
 const { runFinanceAgentTask } = require("./finance-runtime");
 const { evaluateFinanceAgentRuns } = require("./finance-runtime-evaluation");
+const { evaluateFinanceWorkflowSuite } = require("./finance-workflow-evaluation");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -26,6 +27,7 @@ const USAGE = [
   "  --inspect [run-id]    Inspect recent runs or one run from the ledger",
   "  --finance-evaluate    Run the deterministic Finance evaluation suite",
   "  --finance-runtime-evaluate  Run an end-to-end Finance runtime evaluation",
+  "  --finance-workflow-evaluate  Evaluate the complete Finance reference workflow",
   "  -h, --help      Show this help and exit",
   "",
   "Examples:",
@@ -98,6 +100,7 @@ function parseArgs(argv) {
     inspectRunId: null,
     financeEvaluate: false,
     financeRuntimeEvaluate: false,
+    financeWorkflowEvaluate: false,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -128,6 +131,9 @@ function parseArgs(argv) {
         break;
       case "--finance-runtime-evaluate":
         parsed.financeRuntimeEvaluate = true;
+        break;
+      case "--finance-workflow-evaluate":
+        parsed.financeWorkflowEvaluate = true;
         break;
       case "--inspect": {
         parsed.inspect = true;
@@ -216,6 +222,18 @@ function runCli(argv, options = {}) {
       out(`error: ${error.message}`);
       return { code: 2, report: null };
     }
+  }
+
+  if (args.financeWorkflowEvaluate) {
+    const evaluation = evaluateFinanceWorkflowSuite();
+    out(args.json ? JSON.stringify(evaluation, null, 2) : [
+      "Finance workflow evaluation",
+      `  Cases:    ${evaluation.total}`,
+      `  Passed:   ${evaluation.passed}`,
+      `  Failed:   ${evaluation.failed}`,
+      `  PassRate: ${evaluation.passRate}`,
+    ].join("\n"));
+    return { code: evaluation.passRate === 1 ? 0 : 1, report: evaluation };
   }
 
   if (args.financeRuntimeEvaluate) {

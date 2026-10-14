@@ -147,3 +147,21 @@ test("finance runtime evaluation CLI runs the complete agent path", () => {
   assert.equal(result.report.passed, 1);
   assert.match(lines.join("\n"), /Finance runtime evaluation/);
 });
+
+
+test("finance workflow evaluation CLI runs all reference scenarios", () => {
+  const lines = [];
+  const result = runCli(["--finance-workflow-evaluate"], { out: line => lines.push(line) });
+  assert.equal(result.code, 0);
+  assert.equal(result.report.total, 5);
+  assert.equal(result.report.passed, 5);
+  assert.equal(result.report.passRate, 1);
+  assert.match(lines.join("\n"), /Finance workflow evaluation/);
+});
+
+test("finance workflow evaluation CLI emits JSON when requested", () => {
+  const lines = [];
+  const result = runCli(["--finance-workflow-evaluate", "--json"], { out: line => lines.push(line) });
+  assert.equal(result.code, 0);
+  assert.equal(JSON.parse(lines.join("\n")).passRate, 1);
+});
