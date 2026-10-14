@@ -10,6 +10,7 @@ const { DEFAULT_CASES, evaluateFinanceSuiteDashboard } = require("./finance-eval
 const { createPolicyKnowledge } = require("./finance-policy-knowledge");
 const { runFinanceAgentTask } = require("./finance-runtime");
 const { evaluateFinanceAgentRuns } = require("./finance-runtime-evaluation");
+const { evaluateFinanceWorkflowSuite } = require("./finance-workflow-evaluation");
 
 const USAGE = [
   "opspilot — turn a plain-language task into a planned, executed run",
@@ -26,6 +27,7 @@ const USAGE = [
   "  --inspect [run-id]    Inspect recent runs or one run from the ledger",
   "  --finance-evaluate    Run the deterministic Finance evaluation suite",
   "  --finance-runtime-evaluate  Run an end-to-end Finance runtime evaluation",
+  "  --finance-workflow-evaluate  Evaluate the complete Finance reference workflow",
   "  -h, --help      Show this help and exit",
   "",
   "Examples:",
@@ -98,6 +100,7 @@ function parseArgs(argv) {
     inspectRunId: null,
     financeEvaluate: false,
     financeRuntimeEvaluate: false,
+    financeWorkflowEvaluate: false,
   };
   const words = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -218,7 +221,7 @@ function runCli(argv, options = {}) {
     }
   }
 
-  if (args.financeRuntimeEvaluate) {
+  if (args.financeWorkflowEvaluate) {\n    const evaluation = evaluateFinanceWorkflowSuite();\n    out(args.json ? JSON.stringify(evaluation, null, 2) : [\n      "Finance workflow evaluation",\n      `  Cases:    ${evaluation.total}`,\n      `  Passed:   ${evaluation.passed}`,\n      `  Failed:   ${evaluation.failed}`,\n      `  PassRate: ${evaluation.passRate}`,\n    ].join("\\n"));\n    return { code: evaluation.passRate === 1 ? 0 : 1, report: evaluation };\n  }\n\n  if (args.financeRuntimeEvaluate) {
     const knowledge = createPolicyKnowledge([
       { id: "payment-threshold", title: "Payment approval threshold", text: "Payments at or above the approval threshold require approval." },
     ]);
