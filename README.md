@@ -117,6 +117,16 @@ The implementation is intentionally not connected to real-money execution. Finan
 
 The MCP adapter exposes the finance tools through JSON-RPC with protocol metadata, structured tool results, and tool errors. A dependency-free Node HTTP adapter provides the transport boundary with request validation and body-size limits. The Finance tool layer can delegate invoice/vendor reads to an injected external provider with timeout and retryable-error classification. The evaluation layer produces case-level results and a deterministic dashboard projection covering overall pass rate plus policy, evidence, and evaluator dimensions.
 
+Run the deterministic suites locally before changing the workflow:
+
+```bash
+node bin/opspilot.js --finance-evaluate --json
+node bin/opspilot.js --finance-runtime-evaluate --json
+node bin/opspilot.js --finance-workflow-evaluate --json
+```
+
+The workflow evaluation exercises allowed, blocked, pending-approval, approved, and rejected scenarios. It exits non-zero if any expected policy, workflow, evidence, audit-correlation, or simulation-safety contract fails.
+
 
 ### External provider boundary
 
