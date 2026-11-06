@@ -5,9 +5,24 @@ const { verifyResult } = require("./task-verifier");
 const { buildRuntimeReport } = require("./runtime-report");
 const { buildPipelineAudit } = require("./runtime-pipeline-audit");
 const { recordStage, summarizeStages } = require("./runtime-observability");
-const { authorizeExecution } = require("./execution-policy");
+const { authorizeExecution, validatePlan } = require("./execution-policy");
 const { randomUUID } = require("node:crypto");
 const { ERROR_CODES, createRuntimeError, normalizeExecutionError } = require("./runtime-errors");
+
+// A pre-computed plan (for example one proposed by the LLM planner) must
+// satisfy the same contract as the deterministic plan and belong to this task.
+// It is only a proposal: authorizeExecution below still decides.
+function resolvePlan(task, proposedPlan) {
+  if (proposedPlan === null || proposedPlan === undefined) return planTask(task);
+  if (typeof proposedPlan !== "object" || Array.isArray(proposedPlan)) throw new TypeError("plan must be an object");
+  validatePlan(proposedPlan);
+  if (proposedPlan.task !== task.input) throw new TypeError("plan.task must match the task input");
+  return proposedPlan;
+}
+
+function summarizePlanner(planner) {
+  return { source: planner.source, provider: planner.provider ?? null, model: planner.model ?? null, fallbackReason: planner.fallbackReason ?? null };
+}
 
 function runTaskPipeline(input, tool = null, retryOptions = {}) {
   if (retryOptions === null || typeof retryOptions !== "object" || Array.isArray(retryOptions)) {
@@ -15,7 +30,8 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   }
   const task = new Task(input);
   const runId = typeof retryOptions?.runId === "string" && retryOptions.runId.trim() ? retryOptions.runId.trim() : randomUUID();
-  const executionOptions = { ...retryOptions, runId };
+  const { plan: proposedPlan = null, ...restOptions } = retryOptions;
+  const executionOptions = { ...restOptions, runId };
   const operationId = typeof retryOptions?.operationId === "string" && retryOptions.operationId.trim() ? retryOptions.operationId.trim() : null;
   const executionAdapter = retryOptions?.executionAdapter || null;
   if (executionAdapter !== null && typeof executionAdapter !== "function") throw new TypeError("executionAdapter must be a function or null");
@@ -31,9 +47,9 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   stages = recordStage(stages, "parse", "success", parseStartedAt, parseFinishedAt, { runId });
 
   const planStartedAt = new Date();
-  const plan = planTask(task);
+  const plan = resolvePlan(task, proposedPlan);
   const planFinishedAt = new Date();
-  stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt, { runId });
+  stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt, { runId, planner: plan.planner || { source: "deterministic", fallbackReason: null } });
 
   const authorization = authorizeExecution(plan, tool || executionAdapter);
   if (ledgerStart) ledgerStart.metadata.authorization = authorization;
@@ -53,7 +69,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const audit = buildPipelineAudit(task, result, verification);
   const observability = { stages, summary: summarizeStages(stages) };
   const report = buildRuntimeReport({ ...run, audit, observability });
-  if (ledger) ledger.recordCompletion(task.input, result, { runId, operationId, tenantId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs });
+  if (ledger) ledger.recordCompletion(task.input, result, { runId, operationId, tenantId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs, ...(plan.planner ? { planner: summarizePlanner(plan.planner) } : {}) });
 
   return { ...run, report: { ...report, runId }, audit, observability };
 }

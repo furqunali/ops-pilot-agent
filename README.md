@@ -148,6 +148,36 @@ const tools = createFinanceTools({ provider });
 
 This boundary is suitable for sandbox/reference integrations. Production deployment still requires service-specific authentication, authorization, data contracts, integration tests, and operational controls. Real-money payment execution remains intentionally out of scope.
 
+### LLM planner (optional): model proposes, policy decides
+
+Planning is deterministic by default. An optional LLM planner (`src/llm-planner.js`) can ask Gemini, OpenAI or Anthropic for a JSON plan using the built-in `fetch` (Node 18+, no SDK dependencies). The model can only **propose** a plan:
+
+- The response must be one JSON object that passes the plan contract: allowed actions only (`parse`, `plan`, `execute`, `verify`, `report`), consecutive ids, exactly one `execute` step with status `requires-tool`, `verify` after `execute`, ending in `report`, and no unknown fields.
+- The plan is always bound to the real task text, whatever the model claims.
+- Authorization stays deterministic. `authorizeExecution` still decides whether anything runs, so a proposed plan cannot grant a tool or widen scope.
+- If the key is missing, the request fails or times out, the JSON is invalid, or the plan breaks the schema, OpsPilot falls back to the deterministic planner. The reason (`missing_api_key`, `timeout`, `network_error`, `provider_error`, `invalid_json`, `schema_violation`) is recorded on `plan.planner`, in the `plan` stage metadata and in the execution-ledger completion record.
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `OPSPILOT_LLM_PROVIDER` | `gemini`, `openai`, `anthropic` or `none` | `none` (deterministic only) |
+| `OPSPILOT_LLM_MODEL` | Model id sent to the provider | `gemini-2.5-flash` / `gpt-4.1-mini` / `claude-opus-5-5` |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Provider key, read for the selected provider | unset |
+| `OPSPILOT_LLM_API_KEY` | Optional override key for whichever provider is selected | unset |
+| `OPSPILOT_LLM_TIMEOUT_MS` | Request timeout in milliseconds | `15000` |
+| `OPSPILOT_LLM_BASE_URL` | Optional API base URL, for example a gateway | the provider's public API |
+
+Keys are read from the environment only. They are kept off the serialized config and sent only in request headers.
+
+```js
+const { createLlmPlanner, runPlannedTaskPipeline } = require("./src/llm-planner");
+
+const planner = createLlmPlanner(); // reads the variables above from process.env
+const run = await runPlannedTaskPipeline("compile the weekly operations report", input => `done: ${input}`, { planner });
+console.log(run.plan.planner); // { source: "llm" | "deterministic", provider, model, fallbackReason, detail }
+```
+
+The tests mock `fetch`, so the suite runs offline without keys.
+
 ### Runtime example
 
 ```js
