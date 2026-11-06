@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Idempotency keys (`src/idempotency-store.js`), persisted in the existing state store (memory or atomic JSON file). A repeat with the same key and payload returns the original result without executing. The same key with a different payload raises `RUNTIME_IDEMPOTENCY_CONFLICT`. Records have a TTL with `purgeExpired()`, in-process duplicates are coalesced, stale in-progress markers are handled, and failed operations are not remembered.
+- `runFinanceWorkflowIdempotent()` (`src/finance-idempotency.js`) makes payment preparation exactly-once per key. Only terminal outcomes are remembered, so a pending approval can be completed with the same key, and each replay records a `finance.execution_replayed` audit event.
+- An `Idempotency-Key` header on `POST /run` when the HTTP server is created with `idempotencyStore`. Replays return `Idempotent-Replayed: true`, and conflicts return `409`.
+- `RUNTIME_IDEMPOTENCY_CONFLICT` and `RUNTIME_IDEMPOTENCY_IN_PROGRESS` error codes.
 - Observability (`src/runtime-telemetry.js`): a dependency-free Prometheus registry and runtime telemetry. It counts runs, stage-duration histograms, approvals, blocks, planner fallbacks, errors and execution attempts, plus ledger gauges built on `metricsFromLedger`.
 - `GET /metrics` on the runtime HTTP API, in Prometheus text format 0.0.4. `createRuntimeHttpServer({ telemetry, traceExporter })` observes every `/run`.
 - OpenTelemetry-compatible trace export: `buildRunSpans()` (OTLP/JSON-shaped, one span per stage, trace ID derived from the run ID), `createJsonLinesTraceExporter()` and `exportRuntimeTraceOtlp()` for existing `RuntimeTrace` spans.

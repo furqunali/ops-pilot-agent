@@ -240,6 +240,35 @@ console.log(telemetry.renderMetrics({ ledger }));
 
 **Traces.** `buildRunSpans(run)` returns an OTLP/JSON-shaped document (`resourceSpans → scopeSpans → spans`). It has a root `opspilot.run` span and one child span per stage (`opspilot.stage.parse|plan|execute|verify`) with real stage timestamps. The trace ID is derived from the run ID, so every component that knows the `runId` produces correlated spans, and each span carries `opspilot.run_id`. `createJsonLinesTraceExporter({ write })` writes one document per run as a JSON line. Pass it to `createRuntimeHttpServer({ traceExporter })` to trace every `/run`. `exportRuntimeTraceOtlp(trace, { runId })` converts spans recorded with the existing `RuntimeTrace` helper. The output follows the OTLP/JSON field layout and can be forwarded to an OpenTelemetry Collector. No collector or SDK is bundled.
 
+### Idempotency keys (execute and payment preparation)
+
+A retried request must never prepare a payment twice. `src/idempotency-store.js` stores idempotency records in the existing state store. The memory backend suits tests; the atomic JSON-file backend keeps protection across restarts.
+
+- **Same key, same payload:** returns the original stored result and runs nothing.
+- **Same key, different payload:** fails with `RUNTIME_IDEMPOTENCY_CONFLICT` (HTTP `409`).
+- **Duplicate while the first is still running:** in-process duplicates wait for the first call. A marker left by another process is refused with `RUNTIME_IDEMPOTENCY_IN_PROGRESS` until it goes stale (`staleAfterMs`, default 5 minutes).
+- **Failures are not remembered**, so the caller can retry with the same key. Records expire after `ttlMs` (default 24 hours), and `purgeExpired()` removes them.
+- Payloads are fingerprinted with SHA-256 over canonical JSON (sorted keys). Keys are scoped, for example per tenant.
+
+**Finance.** `runFinanceWorkflowIdempotent({ ...workflowOptions, idempotencyKey, idempotencyStore })` wraps the reference workflow:
+
+- Only terminal outcomes (`prepared`, `blocked`, `rejected`) are remembered. A request that is `pending` approval can be resubmitted with the same key once a reviewer decides.
+- The fingerprint covers the payment, tenant and requester, not the approval.
+- Each replay appends a `finance.execution_replayed` audit event with the key and the original run ID.
+
+```js
+const { createIdempotencyStore } = require("./src/idempotency-store");
+const { runFinanceWorkflowIdempotent } = require("./src/finance-idempotency");
+const { FileStateStore } = require("./src/persistence/state-store");
+
+const idempotencyStore = createIdempotencyStore({ store: new FileStateStore("./state") });
+const first = await runFinanceWorkflowIdempotent({ payment, policy, knowledge, ledger, idempotencyStore, idempotencyKey: "pay-2026-11-06-001" });
+const retry = await runFinanceWorkflowIdempotent({ payment, policy, knowledge, ledger, idempotencyStore, idempotencyKey: "pay-2026-11-06-001" });
+// retry.idempotency.replayed === true; the payment was prepared exactly once
+```
+
+**HTTP.** With `createRuntimeHttpServer({ idempotencyStore })`, `POST /run` honours an `Idempotency-Key` header. A repeat returns the original response with `Idempotent-Replayed: true`. A different body with the same key gets `409`.
+
 ### Runtime example
 
 ```js
