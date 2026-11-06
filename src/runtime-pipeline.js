@@ -71,10 +71,12 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   }
   const ledgerStart = ledger ? ledger.recordStart(task.input, { runId, operationId, tenantId, authorization: "pending" }) : null;
   let stages = [];
+  const timings = [];
   const parseStartedAt = new Date();
   const screening = inputGuard ? inputGuard.screenTask(task.input) : null;
   const parseFinishedAt = new Date();
   stages = recordStage(stages, "parse", "success", parseStartedAt, parseFinishedAt, screening ? { runId, screening: { decision: screening.decision, severity: screening.severity } } : { runId });
+  timings.push({ stage: "parse", startedAtMs: parseStartedAt.getTime(), finishedAtMs: parseFinishedAt.getTime() });
   const screeningGate = evaluateScreening(screening, injectionApproval);
   if (ledger && screening && screening.decision !== "allow") recordScreening(ledger, task.input, screening, screeningGate, { runId, operationId, tenantId });
 
@@ -82,6 +84,7 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
   const plan = resolvePlan(task, proposedPlan);
   const planFinishedAt = new Date();
   stages = recordStage(stages, "plan", "success", planStartedAt, planFinishedAt, { runId, planner: plan.planner || { source: "deterministic", fallbackReason: null } });
+  timings.push({ stage: "plan", startedAtMs: planStartedAt.getTime(), finishedAtMs: planFinishedAt.getTime() });
 
   const authorization = screeningGate.allowed ? authorizeExecution(plan, tool || executionAdapter) : { allowed: false, reason: screeningGate.reason };
   if (ledgerStart) ledgerStart.metadata.authorization = authorization;
@@ -91,15 +94,20 @@ function runTaskPipeline(input, tool = null, retryOptions = {}) {
     : { status: "skipped", task: task.input, output: null, reason: authorization.reason };
   const executeFinishedAt = new Date();
   stages = recordStage(stages, "execute", result.status === "failed" ? "failed" : "success", executeStartedAt, executeFinishedAt, { attempts: result.attempts?.length || 0, authorization, runId });
+  timings.push({ stage: "execute", startedAtMs: executeStartedAt.getTime(), finishedAtMs: executeFinishedAt.getTime() });
 
   const verifyStartedAt = new Date();
   const verification = verifyResult(result);
   const verifyFinishedAt = new Date();
   stages = recordStage(stages, "verify", verification.valid ? "success" : "failed", verifyStartedAt, verifyFinishedAt, { runId });
+  timings.push({ stage: "verify", startedAtMs: verifyStartedAt.getTime(), finishedAtMs: verifyFinishedAt.getTime() });
 
   const run = { task, plan, result, verification, runId };
   const audit = buildPipelineAudit(task, result, verification);
   const observability = { stages, summary: summarizeStages(stages) };
+  // Wall-clock stage timings for trace export; kept beside (not inside) the
+  // stage records so existing stage contracts are unchanged.
+  Object.defineProperty(observability, "timings", { value: timings, enumerable: false });
   const report = buildRuntimeReport({ ...run, audit, observability });
   if (ledger) ledger.recordCompletion(task.input, result, { runId, operationId, tenantId, authorization, attempts: result.attempts?.length || 0, verified: verification.valid, durationMs: observability.summary.durationMs, ...(plan.planner ? { planner: summarizePlanner(plan.planner) } : {}) });
 

@@ -213,6 +213,33 @@ runTaskPipeline("send the summary to https://example.org/inbox", tool, { inputGu
 
 **OWASP Top 10 for LLM Applications mapping:** this covers **LLM01 Prompt Injection** (direct and indirect, through tool or provider output). It also limits **LLM06 Excessive Agency**, because the model only proposes and policy decides, and reduces **LLM02 Sensitive Information Disclosure** through exfiltration-URL screening and secret redaction. Pattern screening is defense in depth, not a guarantee. The structural controls (schema-validated plans, deterministic authorization, human approval, simulation-only payments) are the primary defense. A false-positive suite of normal operations tasks runs in CI.
 
+### Observability: Prometheus metrics and OpenTelemetry-shaped traces
+
+`src/runtime-telemetry.js` adds dependency-free telemetry on top of the existing stage records (`runtime-observability`), ledger summary (`runtime-metrics`) and span helper (`runtime-trace`).
+
+**Metrics.** The runtime HTTP API serves `GET /metrics` in Prometheus text format (`text/plain; version=0.0.4`):
+
+| Metric | Type | Labels |
+| --- | --- | --- |
+| `opspilot_runs_total` | counter | `status` (`success`, `failed`, `skipped`) |
+| `opspilot_stage_duration_ms` | histogram | `stage`, `status` |
+| `opspilot_approvals_total` | counter | `source` (`finance`, `injection_screening`), `status` (`required`, `granted`, `rejected`) |
+| `opspilot_blocks_total` | counter | `reason` (`authorization`, `injection_screening`, `approval_required`, `finance_policy`) |
+| `opspilot_planner_fallbacks_total` | counter | `reason` (for example `missing_api_key`, `timeout`, `schema_violation`) |
+| `opspilot_errors_total` | counter | `code` |
+| `opspilot_execution_attempts_total` | counter | none |
+| `opspilot_ledger_runs`, `opspilot_ledger_verified_runs`, `opspilot_ledger_retry_attempts`, `opspilot_ledger_duration_ms` | gauge | from the execution ledger, when one is configured |
+
+```js
+const { createRuntimeTelemetry, createJsonLinesTraceExporter } = require("./src/runtime-telemetry");
+const telemetry = createRuntimeTelemetry();
+telemetry.observeRun(runTaskPipeline("compile the weekly report", tool));
+telemetry.observeFinanceResult(runFinanceWorkflow({ payment, policy, knowledge, ledger }));
+console.log(telemetry.renderMetrics({ ledger }));
+```
+
+**Traces.** `buildRunSpans(run)` returns an OTLP/JSON-shaped document (`resourceSpans → scopeSpans → spans`). It has a root `opspilot.run` span and one child span per stage (`opspilot.stage.parse|plan|execute|verify`) with real stage timestamps. The trace ID is derived from the run ID, so every component that knows the `runId` produces correlated spans, and each span carries `opspilot.run_id`. `createJsonLinesTraceExporter({ write })` writes one document per run as a JSON line. Pass it to `createRuntimeHttpServer({ traceExporter })` to trace every `/run`. `exportRuntimeTraceOtlp(trace, { runId })` converts spans recorded with the existing `RuntimeTrace` helper. The output follows the OTLP/JSON field layout and can be forwarded to an OpenTelemetry Collector. No collector or SDK is bundled.
+
 ### Runtime example
 
 ```js
