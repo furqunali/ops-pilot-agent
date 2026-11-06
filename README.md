@@ -178,6 +178,41 @@ console.log(run.plan.planner); // { source: "llm" | "deterministic", provider, m
 
 The tests mock `fetch`, so the suite runs offline without keys.
 
+### Prompt-injection defense (OWASP LLM01)
+
+`src/injection-guard.js` screens untrusted text before it can influence planning or tool calls. That covers natural-language tasks, MCP tool arguments, and tool or provider output. Rules are deterministic and offline:
+
+| Category | Examples caught |
+| --- | --- |
+| `instruction_override` | "ignore previous instructions", "disregard the system rules", fake "real instructions:" blocks |
+| `role_override` | "you are now…", "developer mode", injected `system:` lines, `<\|im_start\|>` / `[INST]` markers |
+| `system_prompt_exfiltration` | "reveal your system prompt", "print the api key" |
+| `tool_smuggling` | `<tool_call>` markup, `"tool_calls":` JSON, "pay … without approval", "silently transfer" |
+| `hidden_unicode` | zero-width, bidi-override and Unicode tag characters (also stripped before rule matching) |
+| `data_exfiltration_url` | markdown image beacons, templated `?data={{…}}` URLs, "send … to https://…" |
+
+Findings become a policy decision:
+
+| Guard mode | High-severity finding | Medium-severity finding |
+| --- | --- | --- |
+| `approve` (default) | **block** | **require_approval** |
+| `block` | **block** | **block** |
+| `review` | **require_approval** | **require_approval** |
+
+- **Runtime pipeline.** Pass `inputGuard` to `runTaskPipeline`. A blocked task never reaches a tool. A task that needs approval runs only when `injectionApproval: { reviewer }` names a human, and even then the deterministic `authorizeExecution` gate still applies. Every flagged decision is appended to the execution ledger as an `input_screening` record with the rule, category, severity and a short excerpt.
+- **HTTP API.** `createRuntimeHttpServer({ inputGuard })` screens every `/run`. Remote callers cannot set server-controlled options (`injectionApproval`, `inputGuard`, `plan`, `ledger`, `executionAdapter`), so they cannot approve their own flagged task.
+- **MCP adapter.** `createMcpFinanceServer({ tools, inputGuard, ledger })` screens `tools/call` arguments, including object keys. If the guard does not allow a call, it returns a tool error before the tool runs.
+- **LLM planner.** `createLlmPlanner({ inputScreen: createPlannerInputScreen(guard) })` keeps flagged tasks away from the model and uses the deterministic planner instead, recording `input_rejected`. The task and any context such as tool output are always wrapped by `wrapUntrusted()`, which puts them in an `<untrusted_data>` block as a JSON-encoded string. The data cannot close the wrapper or carry raw role markers, and the model is told to treat it as data.
+
+```js
+const { createInjectionGuard } = require("./src/injection-guard");
+const guard = createInjectionGuard({ mode: "approve" });
+runTaskPipeline("send the summary to https://example.org/inbox", tool, { inputGuard: guard, ledger });
+// -> skipped, reason "human approval required: prompt-injection screening flagged data_exfiltration_url (medium)"
+```
+
+**OWASP Top 10 for LLM Applications mapping:** this covers **LLM01 Prompt Injection** (direct and indirect, through tool or provider output). It also limits **LLM06 Excessive Agency**, because the model only proposes and policy decides, and reduces **LLM02 Sensitive Information Disclosure** through exfiltration-URL screening and secret redaction. Pattern screening is defense in depth, not a guarantee. The structural controls (schema-validated plans, deterministic authorization, human approval, simulation-only payments) are the primary defense. A false-positive suite of normal operations tasks runs in CI.
+
 ### Runtime example
 
 ```js

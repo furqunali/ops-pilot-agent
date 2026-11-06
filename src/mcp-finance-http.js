@@ -24,8 +24,8 @@ function readJsonBody(request, maxBytes = 1024 * 1024) {
   });
 }
 
-function createMcpFinanceHttpHandler({ tools, maxBodyBytes = 1024 * 1024 } = {}) {
-  const server = createMcpFinanceServer({ tools });
+function createMcpFinanceHttpHandler({ tools, maxBodyBytes = 1024 * 1024, inputGuard = null, ledger = null } = {}) {
+  const server = createMcpFinanceServer({ tools, inputGuard, ledger });
   return async function handleHttp(request, response) {
     if (request.method !== "POST") {
       response.writeHead(405, { Allow: "POST", "Content-Type": "application/json" });
