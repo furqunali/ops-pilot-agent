@@ -48,8 +48,29 @@ function validateModernRequest(message) {
   return null;
 }
 
-function createMcpFinanceServer({ tools }) {
+function createMcpFinanceServer({ tools, inputGuard = null, ledger = null }) {
   if (!tools || typeof tools !== "object") throw new TypeError("tools must be an object");
+  if (inputGuard !== null && (!inputGuard || typeof inputGuard.screenToolInput !== "function")) throw new TypeError("inputGuard must expose screenToolInput()");
+  if (ledger !== null && (!ledger || typeof ledger.append !== "function")) throw new TypeError("ledger must expose append()");
+
+  // Screen tool arguments for injection patterns before any tool runs. MCP
+  // calls have no interactive approval step, so both "block" and
+  // "require_approval" stop the call and return a tool error with the reason.
+  function screenCall(id, name, argumentsValue) {
+    if (!inputGuard) return null;
+    const screening = inputGuard.screenToolInput(name, argumentsValue);
+    if (screening.decision === "allow") return null;
+    if (ledger) {
+      ledger.append({
+        type: "input_screening",
+        task: `tools/call ${name}`,
+        status: screening.decision,
+        metadata: { tool: name, decision: screening.decision, severity: screening.severity, reason: screening.reason, findings: screening.findings.map(finding => ({ rule: finding.rule, category: finding.category, severity: finding.severity, path: finding.path, excerpt: finding.excerpt })) },
+      });
+    }
+    const prefix = screening.decision === "block" ? "blocked" : "human approval required";
+    return jsonRpcResult(id, { isError: true, content: [{ type: "text", text: `${prefix}: ${screening.reason}` }], screening: { decision: screening.decision, severity: screening.severity } });
+  }
 
   function handle(message) {
     if (!message || message.jsonrpc !== "2.0" || message.method === undefined) {
@@ -97,6 +118,8 @@ function createMcpFinanceServer({ tools }) {
         return jsonRpcError(message.id, -32602, "unknown tool");
       }
 
+      const screened = screenCall(message.id, name, argumentsValue);
+      if (screened) return screened;
       try {
         const value = invokeFinanceTool(tools, name, argumentsValue);
         return jsonRpcResult(message.id, {
@@ -122,6 +145,8 @@ function createMcpFinanceServer({ tools }) {
     const argumentsValue = message.params?.arguments;
     if (typeof name !== "string" || !name.trim()) return jsonRpcError(message.id, -32602, "tools/call requires a tool name");
     if (typeof tools[name] !== "function") return jsonRpcError(message.id, -32602, "unknown tool");
+    const screened = screenCall(message.id, name, argumentsValue);
+    if (screened) return screened;
     try {
       const value = await tools[name](argumentsValue);
       return jsonRpcResult(message.id, { content: [{ type: "text", text: JSON.stringify(value) }], structuredContent: value });
