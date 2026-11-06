@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Observability (`src/runtime-telemetry.js`): a dependency-free Prometheus registry and runtime telemetry. It counts runs, stage-duration histograms, approvals, blocks, planner fallbacks, errors and execution attempts, plus ledger gauges built on `metricsFromLedger`.
+- `GET /metrics` on the runtime HTTP API, in Prometheus text format 0.0.4. `createRuntimeHttpServer({ telemetry, traceExporter })` observes every `/run`.
+- OpenTelemetry-compatible trace export: `buildRunSpans()` (OTLP/JSON-shaped, one span per stage, trace ID derived from the run ID), `createJsonLinesTraceExporter()` and `exportRuntimeTraceOtlp()` for existing `RuntimeTrace` spans.
+- Pipeline runs keep wall-clock stage timings (non-enumerable `observability.timings`) for accurate span timestamps.
 - Prompt-injection defense (`src/injection-guard.js`, OWASP LLM01). It screens for instruction override, role override, system-prompt exfiltration, tool smuggling, hidden or zero-width Unicode and data-exfiltration URLs. The `approve`, `block` and `review` policy modes turn findings into allow, require-approval or block decisions.
 - `runTaskPipeline()` accepts `inputGuard` and `injectionApproval`. Blocked or unapproved tasks are skipped, and every flagged decision is written to the ledger as an `input_screening` record.
 - MCP `tools/call` arguments are screened when `createMcpFinanceServer({ inputGuard, ledger })` is configured. `createMcpFinanceHttpHandler` passes both options through.
