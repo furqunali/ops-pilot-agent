@@ -1,8 +1,27 @@
 # 🛠️ OpsPilot — AI Operations Agent
 
+[![Node Tests](https://github.com/furqunali/ops-pilot-agent/actions/workflows/node-tests.yml/badge.svg)](https://github.com/furqunali/ops-pilot-agent/actions/workflows/node-tests.yml)
+[![Live demo on Hugging Face](https://img.shields.io/badge/Live%20demo-Hugging%20Face-ffcc4d?logo=huggingface&logoColor=black)](https://huggingface.co/spaces/FurqanAli12345/opspilot-ai-operations-agent)
+![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)
+![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 *An operations copilot that turns plain-language instructions into planned, verified, multi-step work.*
 
-> **Status: active reference implementation.** The repository contains a tested runtime, CLI, Finance reference workflow, MCP protocol adapter, HTTP boundary, evaluation framework, and external-provider integration primitives. Real-money execution remains intentionally out of scope.
+**Live demo:** [huggingface.co/spaces/FurqanAli12345/opspilot-ai-operations-agent](https://huggingface.co/spaces/FurqanAli12345/opspilot-ai-operations-agent). It is a static snapshot of real evaluation output, regenerated with `npm run build:hf-demo`.
+
+> **Status: active reference implementation.** The repository contains:
+>
+> - a tested runtime and CLI
+> - an optional LLM planner (Gemini, OpenAI or Anthropic) with a deterministic fallback
+> - prompt-injection screening
+> - Prometheus metrics and OpenTelemetry-shaped traces
+> - idempotent payment preparation
+> - a Finance reference workflow
+> - an MCP protocol adapter and an HTTP boundary
+> - an evaluation framework
+>
+> The suite has 354 automated tests (`npm test`, Node's built-in runner, no dependencies). Real-money execution remains intentionally out of scope.
 
 ---
 
@@ -57,9 +76,12 @@ The behavioural contract lives in [`agent-instructions.md`](agent-instructions.m
 
 ## 🧱 Tech Stack
 
-- **JavaScript (Node.js)** — application runtime (`src/`).
-- **Markdown specification** — the agent's behavioural contract and example library.
-- **Vercel** — static hosting for the project docs (`vercel.json`).
+- **JavaScript (Node.js 18+)**: the application runtime (`src/`). It uses only Node built-ins (`fetch`, `node:http`, `node:crypto`, `node:test`) and has no npm dependencies.
+- **LLM providers (optional)**: Gemini, OpenAI or Anthropic, called over plain HTTPS `fetch` for plan proposals only.
+- **Observability**: Prometheus text exposition and OTLP/JSON-shaped traces, both generated without SDKs.
+- **Markdown specification**: the agent's behavioural contract and example library.
+- **GitHub Actions**: CI (`Node Tests`) on every pull request.
+- **Hugging Face Spaces**: the static [live demo](https://huggingface.co/spaces/FurqanAli12345/opspilot-ai-operations-agent).
 - **MIT licensed.**
 
 ## 🧠 AI / Engineering Decisions
@@ -70,18 +92,23 @@ The behavioural contract lives in [`agent-instructions.md`](agent-instructions.m
 
 ## 🚀 Setup / Installation
 
-> The runtime and CLI are executable today. The repository is intentionally dependency-light and uses Node's built-in test runner.
+> Requires Node.js 18 or later. There is nothing to install; the repository has no dependencies.
 
 ```bash
 git clone https://github.com/furqunali/ops-pilot-agent.git
 cd ops-pilot-agent
 
-# Node.js scaffold
-node --test
+npm test                # full test suite (node --test)
+npm run eval            # Finance policy, runtime and workflow evaluations (non-zero exit on any failure)
+npm run console         # OpsPilot Assurance Console for the Finance reference suite
+npm run demo            # offline tour: guarded runs, finance workflow, idempotent replay, metrics
+npm run build:hf-demo   # regenerate the Hugging Face demo snapshot (writes hf-demo/snapshot.json)
 
-# Optional CLI entry point
+# CLI entry point
 node bin/opspilot.js "compile the weekly operations report" --json
 ```
+
+`npm run build:hf-demo -- --count-tests` also runs the test suite and records the test count in the snapshot. It refuses to write a snapshot if any test or evaluation fails.
 
 Start by reading [`agent-instructions.md`](agent-instructions.md) (the operating spec) and [`examples.md`](examples.md) (the task patterns) to understand the intended behaviour.
 
@@ -311,19 +338,27 @@ The console labels the stages as **intake → policy gate → evidence binding �
 
 ## 🔒 Security
 
-- **No secrets committed.** Credentials and API keys are intended to be supplied via environment variables, never checked into the repository.
+- **No secrets committed.** Credentials and API keys are supplied through environment variables (see the LLM planner table), never checked into the repository. `.env` files are git-ignored.
+- **Model proposes, policy decides.** LLM output is schema-validated and can only propose a plan. Authorization, approval and blocking remain deterministic.
+- **Prompt-injection screening** (OWASP LLM01) covers tasks, tool arguments and untrusted tool output.
 - **Human-in-the-loop for risky actions.** Irreversible or outward-facing steps require explicit confirmation by design.
 - **Anonymized examples.** The documented task examples use generic, non-sensitive scenarios — no real customer or company data.
 
 ## 🗺️ Roadmap
 
-This is an early-stage build. Honest next steps:
+Honest status and next steps:
 
 - [x] Implement the core task loop (parse → plan → authorize → execute → verify → report) in `src/`.
 - [x] Add a protocol-facing MCP finance tool layer; production connectors remain future work.
-- [x] Add production connector configuration and secret-safe HTTP connector primitives.\n- [ ] Connect approved tool definitions to real external services with service-specific authentication, retries, and integration tests.
+- [x] Add production connector configuration and secret-safe HTTP connector primitives.
+- [ ] Connect approved tool definitions to real external services with service-specific authentication, retries, and integration tests.
 - [x] Add automated tests around the planning, execution, verification, finance policy, audit, and evaluation stages.
 - [x] Turn the finance reference workflow into a tested runnable scenario.
+- [x] Add an optional LLM planner (Gemini, OpenAI, Anthropic) with schema validation and a deterministic fallback.
+- [x] Add prompt-injection screening with human-approval and block policies (OWASP LLM01).
+- [x] Expose Prometheus `/metrics` and OpenTelemetry-shaped traces.
+- [x] Make payment preparation idempotent with persisted idempotency keys.
+- [ ] Add an evaluation set for LLM-proposed plans against live providers (needs API keys, so it is kept out of offline CI).
 
 ## Related
 

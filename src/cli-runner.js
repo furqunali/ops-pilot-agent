@@ -256,7 +256,7 @@ function runCli(argv, options = {}) {
       `  Passed:   ${evaluation.passed}`,
       `  PassRate: ${evaluation.passRate}`,
       `  RunId:    ${run.runId}`,
-    ].join("\\n"));
+    ].join("\n"));
     return { code: evaluation.passRate === 1 ? 0 : 1, report: evaluation };
   }
 
@@ -274,7 +274,7 @@ function runCli(argv, options = {}) {
       `  Policy:   ${evaluation.dashboard.dimensions.policy.passRate}`,
       `  Evidence: ${evaluation.dashboard.dimensions.evidence.passRate}`,
       `  Evaluator: ${evaluation.dashboard.dimensions.evaluator.passRate}`,
-    ].join("\\n"));
+    ].join("\n"));
     return { code: evaluation.dashboard.passRate === 1 ? 0 : 1, report: evaluation };
   }
 

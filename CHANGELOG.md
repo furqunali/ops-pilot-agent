@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- npm scripts: `npm run eval` (all three Finance evaluations), `npm run console` (the Assurance Console), `npm run demo` (an offline tour) and `npm run build:hf-demo`.
+- `scripts/build-hf-demo.js` and `src/demo-snapshot.js` regenerate the Hugging Face demo snapshot. They run the Finance evaluations, render the Assurance Console and write JSON. `--count-tests` also records the test count, and the script refuses to write if anything fails.
+- `scripts/assurance-console.js` and `scripts/demo.js`.
+- `engines.node >= 18` in `package.json`.
 - Idempotency keys (`src/idempotency-store.js`), persisted in the existing state store (memory or atomic JSON file). A repeat with the same key and payload returns the original result without executing. The same key with a different payload raises `RUNTIME_IDEMPOTENCY_CONFLICT`. Records have a TTL with `purgeExpired()`, in-process duplicates are coalesced, stale in-progress markers are handled, and failed operations are not remembered.
 - `runFinanceWorkflowIdempotent()` (`src/finance-idempotency.js`) makes payment preparation exactly-once per key. Only terminal outcomes are remembered, so a pending approval can be completed with the same key, and each replay records a `finance.execution_replayed` audit event.
 - An `Idempotency-Key` header on `POST /run` when the HTTP server is created with `idempotencyStore`. Replays return `Idempotent-Replayed: true`, and conflicts return `409`.
@@ -25,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `runTaskPipeline()` accepts a pre-computed `plan` option. It is validated with `validatePlan` and must belong to the same task. Planner provenance is written to the `plan` stage metadata and the ledger completion record.
 - `RUNTIME_PLANNER_FALLBACK` error code.
 - `.gitignore` excluding `.env` files and `node_modules`.
+
+### Changed
+
+- README: CI badge, a "Live demo on Hugging Face" badge and link, npm script setup, an accurate tech stack and an updated test count. Removed the claim that the docs are hosted on Vercel.
+- `docs/USAGE.md` now describes the CLI, HTTP API, MCP adapter and npm scripts instead of saying there is "no network server".
+
+### Fixed
+
+- `--finance-evaluate` and `--finance-runtime-evaluate` printed a literal `\n` instead of line breaks in their text summaries.
+- A literal `\n` in the README roadmap list.
 
 ### Security
 

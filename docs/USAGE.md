@@ -3,10 +3,10 @@
 How to install the project, use the library, register tools, and run the tests. Every
 command and API call here matches the code in [`src/`](../src) as it exists today.
 
-> OpsPilot is currently a **library**, not a long-running service or interactive shell.
-> There is no network server or REPL yet (see the Roadmap in the [README](../README.md)).
-> The only executable script in the repo is the scaffold entry point `src/dummy.js`; the
-> rest is consumed programmatically via `require(...)`, as shown below.
+> OpsPilot is primarily a **library** consumed via `require(...)`, as shown below. It also
+> ships a CLI (`bin/opspilot.js`), a dependency-free HTTP API (`src/runtime-http-api.js`
+> with `/run`, `/health`, `/ready` and `/metrics`), an MCP JSON-RPC adapter, and npm scripts
+> (`npm test`, `npm run eval`, `npm run console`, `npm run demo`). There is no REPL.
 
 ---
 
@@ -25,8 +25,8 @@ git clone https://github.com/furqunali/ops-pilot-agent.git
 cd ops-pilot-agent
 
 # Nothing to install — there are no dependencies.
-# Run the scaffold entry point to confirm your toolchain works:
-node src/dummy.js
+# Run the offline demo to confirm your toolchain works:
+npm run demo
 ```
 
 `npm ci` / `npm install` are effectively no-ops here (no dependencies), so you can skip
