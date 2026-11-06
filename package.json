@@ -7,6 +7,13 @@
     "opspilot": "bin/opspilot.js"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "eval": "node bin/opspilot.js --finance-evaluate && node bin/opspilot.js --finance-runtime-evaluate && node bin/opspilot.js --finance-workflow-evaluate",
+    "console": "node scripts/assurance-console.js",
+    "demo": "node scripts/demo.js",
+    "build:hf-demo": "node scripts/build-hf-demo.js"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
