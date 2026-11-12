@@ -16,6 +16,9 @@ test("evaluation dashboard aggregates policy, evidence, evaluator, and overall r
   assert.equal(dashboard.dimensions.evidence.passRate, 0.5);
   assert.deepEqual(dashboard.failures.map(item => item.id), ["b"]);
   assert.equal(dashboard.generatedAt, "2026-01-01T00:00:00.000Z");
+  assert.equal(dashboard.product, "OpsPilot Assurance Console");
+  assert.equal(dashboard.status, "attention_required");
+  assert.equal(dashboard.risk, "elevated");
 });
 
 test("evaluation dashboard serializes to stable JSON", () => {
