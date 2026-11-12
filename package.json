@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Spec-driven operations copilot runtime",
+  "license": "MIT",
   "bin": {
     "opspilot": "bin/opspilot.js"
   },
